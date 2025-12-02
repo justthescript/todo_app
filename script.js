@@ -10,15 +10,17 @@
  *      "2024-12-15": {
  *        "work": [{ id, title, notes, status, completed, priority }],
  *        "rescue": [...],
- *        "personal": [...]
+ *        "personal": [...],
+ *        "school": [...]
  *      }
  *    }
- * 
+ *
  * 2. backlog: Object with context keys
  *    {
  *      "work": [{ id, title, notes, status }],
  *      "rescue": [...],
- *      "personal": [...]
+ *      "personal": [...],
+ *      "school": [...]
  *    }
  * 
  * 3. recurringTasks: Array of recurring task definitions
@@ -32,7 +34,7 @@
 // GLOBAL STATE
 // ============================================
 
-let currentContext = 'work'; // work | rescue | personal
+let currentContext = 'work'; // work | rescue | personal | school
 let currentView = 'dashboard'; // dashboard | tasks | backlog | recurring | mass-entry
 let currentDate = new Date();
 let selectedDate = null;
@@ -88,7 +90,7 @@ function saveTasksForDate(dateStr, context, taskList) {
  */
 function getBacklog() {
     const backlogJson = localStorage.getItem('backlog');
-    return backlogJson ? JSON.parse(backlogJson) : { work: [], rescue: [], personal: [] };
+    return backlogJson ? JSON.parse(backlogJson) : { work: [], rescue: [], personal: [], school: [] };
 }
 
 /**
@@ -1577,6 +1579,7 @@ function addMassEntryRow() {
                 <option value="work" ${currentContext === 'work' ? 'selected' : ''}>Work</option>
                 <option value="rescue" ${currentContext === 'rescue' ? 'selected' : ''}>Rescue</option>
                 <option value="personal" ${currentContext === 'personal' ? 'selected' : ''}>Personal</option>
+                <option value="school" ${currentContext === 'school' ? 'selected' : ''}>School</option>
             </select>
         </td>
         <td>
