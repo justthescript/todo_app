@@ -35,13 +35,14 @@
 // ============================================
 
 let currentContext = 'work'; // work | rescue | personal | school
-let currentView = 'dashboard'; // dashboard | tasks | backlog | recurring | mass-entry
+let currentView = 'dashboard'; // dashboard | tasks | backlog | recurring | mass-entry | classes | settings
 let currentDate = new Date();
 let selectedDate = null;
 let currentMonth = new Date();
 let tasksViewDate = null; // Date currently being viewed in Tasks page
 let deferringTask = null; // Task being deferred
 let assigningBacklogTask = null; // Backlog task being assigned
+let assigningModuleToWeek = null; // Module being assigned to a week
 let currentWeekIndex = 0; // Current week index for School context
 
 // ============================================
@@ -156,6 +157,61 @@ function getSettings() {
  */
 function saveSettings(settings) {
     localStorage.setItem('settings', JSON.stringify(settings));
+}
+
+/**
+ * Get custom statuses
+ */
+function getCustomStatuses() {
+    const statusesJson = localStorage.getItem('customStatuses');
+    return statusesJson ? JSON.parse(statusesJson) : [
+        { id: 'urgent', name: 'urgent', color: '#f56565' },
+        { id: 'today', name: 'today', color: '#ecc94b' },
+        { id: 'leisure', name: 'leisure', color: '#48bb78' },
+        { id: 'improvements', name: 'improvements', color: '#9f7aea' }
+    ];
+}
+
+/**
+ * Save custom statuses
+ */
+function saveCustomStatuses(statuses) {
+    localStorage.setItem('customStatuses', JSON.stringify(statuses));
+}
+
+/**
+ * Get custom categories (for backlog)
+ */
+function getCustomCategories() {
+    const categoriesJson = localStorage.getItem('customCategories');
+    return categoriesJson ? JSON.parse(categoriesJson) : [
+        { id: 'improvements', name: 'improvements' },
+        { id: 'work-quality', name: 'work-quality' },
+        { id: 'work-reduction', name: 'work-reduction' },
+        { id: 'revenue-increase', name: 'revenue-increase' }
+    ];
+}
+
+/**
+ * Save custom categories
+ */
+function saveCustomCategories(categories) {
+    localStorage.setItem('customCategories', JSON.stringify(categories));
+}
+
+/**
+ * Get classes (for school context)
+ */
+function getClasses() {
+    const classesJson = localStorage.getItem('classes');
+    return classesJson ? JSON.parse(classesJson) : [];
+}
+
+/**
+ * Save classes
+ */
+function saveClasses(classes) {
+    localStorage.setItem('classes', JSON.stringify(classes));
 }
 
 /**
@@ -444,6 +500,17 @@ function setupEventListeners() {
     // Assign date modal
     document.getElementById('closeAssignModal').addEventListener('click', closeAssignModal);
     document.getElementById('assignDateBtn').addEventListener('click', assignBacklogTaskToDate);
+
+    // Assign week modal (for school modules)
+    document.getElementById('closeWeekModal').addEventListener('click', closeWeekModal);
+    document.getElementById('assignWeekBtn').addEventListener('click', assignModuleToWeek);
+
+    // Settings page
+    document.getElementById('addStatusBtn').addEventListener('click', addCustomStatus);
+    document.getElementById('addCategoryBtn').addEventListener('click', addCustomCategory);
+
+    // Classes page
+    document.getElementById('addClassBtn').addEventListener('click', addClass);
 }
 
 // ============================================
@@ -486,7 +553,9 @@ function switchView(view) {
         'tasks': 'tasksView',
         'backlog': 'backlogView',
         'recurring': 'recurringView',
-        'mass-entry': 'massEntryView'
+        'mass-entry': 'massEntryView',
+        'classes': 'classesView',
+        'settings': 'settingsView'
     };
 
     document.getElementById(viewMap[view]).classList.add('active');
@@ -500,6 +569,10 @@ function switchView(view) {
         renderRecurringTasks();
     } else if (view === 'mass-entry') {
         renderMassEntry();
+    } else if (view === 'classes') {
+        renderClasses();
+    } else if (view === 'settings') {
+        renderSettings();
     }
 }
 
@@ -869,7 +942,12 @@ function createTaskElement(task, index, dateStr) {
     deferBtn.textContent = 'Defer';
     deferBtn.addEventListener('click', () => openDeferModal(task, dateStr, index));
     actions.appendChild(deferBtn);
-    
+
+    const moveToBacklogBtn = document.createElement('button');
+    moveToBacklogBtn.textContent = 'Move to Backlog';
+    moveToBacklogBtn.addEventListener('click', () => moveTaskToBacklog(dateStr, index));
+    actions.appendChild(moveToBacklogBtn);
+
     const deleteBtn = document.createElement('button');
     deleteBtn.textContent = 'Delete';
     deleteBtn.addEventListener('click', () => deleteTask(dateStr, index));
@@ -1186,6 +1264,11 @@ function createTasksPageTaskElement(task, taskIndex, section) {
         deferBtn.textContent = 'Defer';
         deferBtn.addEventListener('click', () => openDeferModalFromTasksPage(task, actualIndex));
         actions.appendChild(deferBtn);
+
+        const moveToBacklogBtn = document.createElement('button');
+        moveToBacklogBtn.textContent = 'Move to Backlog';
+        moveToBacklogBtn.addEventListener('click', () => moveTaskToBacklogFromTasksPage(actualIndex));
+        actions.appendChild(moveToBacklogBtn);
     }
 
     // Show undefer button for deferred tasks
@@ -1359,17 +1442,113 @@ function renderBacklog() {
     const backlogList = document.getElementById('backlogTasksList');
     const backlog = getBacklog();
     const tasks = backlog[currentContext] || [];
-    
-    if (tasks.length === 0) {
+
+    backlogList.innerHTML = '';
+
+    // For school context, also show modules grouped by class
+    if (currentContext === 'school') {
+        const classes = getClasses();
+
+        if (classes.length > 0) {
+            classes.forEach((classItem, classIndex) => {
+                if (classItem.modules && classItem.modules.length > 0) {
+                    const classSection = document.createElement('div');
+                    classSection.className = 'backlog-class-section';
+
+                    const classHeader = document.createElement('h3');
+                    classHeader.className = 'backlog-class-header';
+                    classHeader.textContent = classItem.name;
+                    classSection.appendChild(classHeader);
+
+                    const modulesList = document.createElement('div');
+                    modulesList.className = 'backlog-modules-list';
+
+                    classItem.modules.forEach((module, moduleIndex) => {
+                        const moduleElement = createBacklogModuleElement(module, classIndex, moduleIndex);
+                        modulesList.appendChild(moduleElement);
+                    });
+
+                    classSection.appendChild(modulesList);
+                    backlogList.appendChild(classSection);
+                }
+            });
+        }
+
+        // Show separator if there are both classes and tasks
+        if (classes.length > 0 && tasks.length > 0) {
+            const separator = document.createElement('hr');
+            separator.style.margin = '20px 0';
+            backlogList.appendChild(separator);
+
+            const otherTasksHeader = document.createElement('h3');
+            otherTasksHeader.className = 'backlog-class-header';
+            otherTasksHeader.textContent = 'Other Backlog Items';
+            backlogList.appendChild(otherTasksHeader);
+        }
+    }
+
+    // Show regular backlog tasks
+    if (tasks.length === 0 && (currentContext !== 'school' || getClasses().length === 0)) {
         backlogList.innerHTML = '<div class="empty-state"><p>No backlog items</p></div>';
         return;
     }
-    
-    backlogList.innerHTML = '';
+
     tasks.forEach((task, index) => {
         const taskElement = createBacklogTaskElement(task, index);
         backlogList.appendChild(taskElement);
     });
+}
+
+function createBacklogModuleElement(module, classIndex, moduleIndex) {
+    const taskElement = document.createElement('div');
+    taskElement.className = 'task-item module-item-backlog';
+
+    const header = document.createElement('div');
+    header.className = 'task-header';
+
+    const titleGroup = document.createElement('div');
+    titleGroup.className = 'task-title-group';
+
+    const title = document.createElement('div');
+    title.className = 'task-title';
+    title.textContent = module.name;
+    titleGroup.appendChild(title);
+
+    if (module.weekNumber) {
+        const weekInfo = document.createElement('div');
+        weekInfo.className = 'task-notes';
+        weekInfo.textContent = `Assigned to Week ${module.weekNumber} - ${module.semester}`;
+        titleGroup.appendChild(weekInfo);
+    }
+
+    const statusBadge = document.createElement('span');
+    statusBadge.className = 'status-badge module-badge';
+    statusBadge.textContent = 'Module';
+    titleGroup.appendChild(statusBadge);
+
+    header.appendChild(titleGroup);
+
+    const actions = document.createElement('div');
+    actions.className = 'task-actions';
+
+    const assignWeekBtn = document.createElement('button');
+    assignWeekBtn.textContent = module.weekNumber ? 'Reassign Week' : 'Assign Week';
+    assignWeekBtn.addEventListener('click', () => openWeekAssignModal(classIndex, moduleIndex));
+    actions.appendChild(assignWeekBtn);
+
+    const viewInClassesBtn = document.createElement('button');
+    viewInClassesBtn.textContent = 'View in Classes';
+    viewInClassesBtn.addEventListener('click', () => {
+        currentView = 'classes';
+        updateNavButtons();
+        switchView('classes');
+    });
+    actions.appendChild(viewInClassesBtn);
+
+    header.appendChild(actions);
+    taskElement.appendChild(header);
+
+    return taskElement;
 }
 
 function createBacklogTaskElement(task, index) {
@@ -1793,7 +1972,13 @@ function renderMassEntry() {
 function addMassEntryRow() {
     const tbody = document.getElementById('massEntryTableBody');
     const row = document.createElement('tr');
-    
+
+    // Get custom statuses for the dropdown
+    const statuses = getCustomStatuses();
+    const statusOptions = statuses.map(s =>
+        `<option value="${s.id}">${s.name}</option>`
+    ).join('');
+
     row.innerHTML = `
         <td><input type="text" placeholder="Task title"></td>
         <td><textarea placeholder="Notes"></textarea></td>
@@ -1807,20 +1992,17 @@ function addMassEntryRow() {
         </td>
         <td>
             <select>
-                <option value="urgent">Urgent</option>
-                <option value="today">Today</option>
-                <option value="leisure">Leisure</option>
-                <option value="improvements">Improvements</option>
+                ${statusOptions}
             </select>
         </td>
         <td><input type="date"></td>
         <td><button class="remove-row-btn">Remove</button></td>
     `;
-    
+
     row.querySelector('.remove-row-btn').addEventListener('click', () => {
         row.remove();
     });
-    
+
     tbody.appendChild(row);
 }
 
@@ -1887,10 +2069,461 @@ function saveMassEntry() {
 }
 
 // ============================================
+// SETTINGS PAGE
+// ============================================
+
+function renderSettings() {
+    renderStatusesList();
+    renderCategoriesList();
+}
+
+function renderStatusesList() {
+    const list = document.getElementById('statusesList');
+    const statuses = getCustomStatuses();
+
+    if (statuses.length === 0) {
+        list.innerHTML = '<div class="empty-state"><p>No custom statuses</p></div>';
+        return;
+    }
+
+    list.innerHTML = '';
+    statuses.forEach((status, index) => {
+        const item = document.createElement('div');
+        item.className = 'settings-list-item';
+        item.innerHTML = `
+            <div class="settings-item-info">
+                <span class="settings-color-preview" style="background: ${status.color}"></span>
+                <span>${status.name}</span>
+            </div>
+            <button class="delete-settings-btn" data-index="${index}">Delete</button>
+        `;
+        item.querySelector('.delete-settings-btn').addEventListener('click', () => {
+            deleteCustomStatus(index);
+        });
+        list.appendChild(item);
+    });
+}
+
+function renderCategoriesList() {
+    const list = document.getElementById('categoriesList');
+    const categories = getCustomCategories();
+
+    if (categories.length === 0) {
+        list.innerHTML = '<div class="empty-state"><p>No custom categories</p></div>';
+        return;
+    }
+
+    list.innerHTML = '';
+    categories.forEach((category, index) => {
+        const item = document.createElement('div');
+        item.className = 'settings-list-item';
+        item.innerHTML = `
+            <div class="settings-item-info">
+                <span>${category.name}</span>
+            </div>
+            <button class="delete-settings-btn" data-index="${index}">Delete</button>
+        `;
+        item.querySelector('.delete-settings-btn').addEventListener('click', () => {
+            deleteCustomCategory(index);
+        });
+        list.appendChild(item);
+    });
+}
+
+function addCustomStatus() {
+    const nameInput = document.getElementById('newStatusName');
+    const colorInput = document.getElementById('newStatusColor');
+
+    const name = nameInput.value.trim();
+    if (!name) return;
+
+    const statuses = getCustomStatuses();
+    const id = name.toLowerCase().replace(/\s+/g, '-');
+
+    statuses.push({
+        id: id,
+        name: name,
+        color: colorInput.value
+    });
+
+    saveCustomStatuses(statuses);
+    nameInput.value = '';
+    colorInput.value = '#667eea';
+    renderStatusesList();
+    updateAllStatusDropdowns();
+}
+
+function deleteCustomStatus(index) {
+    if (!confirm('Delete this status?')) return;
+
+    const statuses = getCustomStatuses();
+    statuses.splice(index, 1);
+    saveCustomStatuses(statuses);
+    renderStatusesList();
+    updateAllStatusDropdowns();
+}
+
+function addCustomCategory() {
+    const nameInput = document.getElementById('newCategoryName');
+
+    const name = nameInput.value.trim();
+    if (!name) return;
+
+    const categories = getCustomCategories();
+    const id = name.toLowerCase().replace(/\s+/g, '-');
+
+    categories.push({
+        id: id,
+        name: name
+    });
+
+    saveCustomCategories(categories);
+    nameInput.value = '';
+    renderCategoriesList();
+    updateAllCategoryDropdowns();
+}
+
+function deleteCustomCategory(index) {
+    if (!confirm('Delete this category?')) return;
+
+    const categories = getCustomCategories();
+    categories.splice(index, 1);
+    saveCustomCategories(categories);
+    renderCategoriesList();
+    updateAllCategoryDropdowns();
+}
+
+function updateAllStatusDropdowns() {
+    const statuses = getCustomStatuses();
+    const dropdowns = [
+        'newTaskStatus',
+        'tasksNewTaskStatus',
+        'statusFilter',
+        'recurringTaskStatus'
+    ];
+
+    dropdowns.forEach(id => {
+        const select = document.getElementById(id);
+        if (select) {
+            const currentValue = select.value;
+            select.innerHTML = '';
+
+            if (id === 'statusFilter') {
+                const allOption = document.createElement('option');
+                allOption.value = 'all';
+                allOption.textContent = 'All Status';
+                select.appendChild(allOption);
+            }
+
+            statuses.forEach(status => {
+                const option = document.createElement('option');
+                option.value = status.id;
+                option.textContent = status.name;
+                select.appendChild(option);
+            });
+
+            if (currentValue && statuses.find(s => s.id === currentValue)) {
+                select.value = currentValue;
+            }
+        }
+    });
+}
+
+function updateAllCategoryDropdowns() {
+    const categories = getCustomCategories();
+    const dropdowns = ['backlogTaskStatus'];
+
+    dropdowns.forEach(id => {
+        const select = document.getElementById(id);
+        if (select) {
+            const currentValue = select.value;
+            select.innerHTML = '';
+
+            categories.forEach(category => {
+                const option = document.createElement('option');
+                option.value = category.id;
+                option.textContent = category.name;
+                select.appendChild(option);
+            });
+
+            if (currentValue && categories.find(c => c.id === currentValue)) {
+                select.value = currentValue;
+            }
+        }
+    });
+}
+
+// ============================================
+// CLASSES PAGE (SCHOOL)
+// ============================================
+
+function renderClasses() {
+    const list = document.getElementById('classesList');
+    const classes = getClasses();
+
+    if (classes.length === 0) {
+        list.innerHTML = '<div class="empty-state"><p>No classes yet. Add a class to get started.</p></div>';
+        return;
+    }
+
+    list.innerHTML = '';
+    classes.forEach((classItem, index) => {
+        const classElement = createClassElement(classItem, index);
+        list.appendChild(classElement);
+    });
+}
+
+function createClassElement(classItem, index) {
+    const div = document.createElement('div');
+    div.className = 'class-item';
+
+    const header = document.createElement('div');
+    header.className = 'class-header';
+
+    const title = document.createElement('h3');
+    title.textContent = classItem.name;
+    header.appendChild(title);
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.textContent = 'Delete Class';
+    deleteBtn.className = 'delete-class-btn';
+    deleteBtn.addEventListener('click', () => deleteClass(index));
+    header.appendChild(deleteBtn);
+
+    div.appendChild(header);
+
+    // Add module form
+    const addModuleForm = document.createElement('div');
+    addModuleForm.className = 'add-module-form';
+    addModuleForm.innerHTML = `
+        <input type="text" class="module-name-input" placeholder="Module name...">
+        <button class="add-module-btn">Add Module</button>
+    `;
+    addModuleForm.querySelector('.add-module-btn').addEventListener('click', () => {
+        const input = addModuleForm.querySelector('.module-name-input');
+        addModule(index, input.value.trim());
+        input.value = '';
+    });
+    div.appendChild(addModuleForm);
+
+    // Modules list
+    const modulesList = document.createElement('div');
+    modulesList.className = 'modules-list';
+
+    if (classItem.modules && classItem.modules.length > 0) {
+        classItem.modules.forEach((module, moduleIndex) => {
+            const moduleElement = createModuleElement(module, index, moduleIndex);
+            modulesList.appendChild(moduleElement);
+        });
+    } else {
+        modulesList.innerHTML = '<p class="empty-modules">No modules yet</p>';
+    }
+
+    div.appendChild(modulesList);
+
+    return div;
+}
+
+function createModuleElement(module, classIndex, moduleIndex) {
+    const div = document.createElement('div');
+    div.className = 'module-item';
+
+    const info = document.createElement('div');
+    info.className = 'module-info';
+    info.innerHTML = `
+        <span class="module-name">${module.name}</span>
+        ${module.weekNumber ? `<span class="module-week">Week ${module.weekNumber}</span>` : ''}
+    `;
+    div.appendChild(info);
+
+    const actions = document.createElement('div');
+    actions.className = 'module-actions';
+
+    const assignBtn = document.createElement('button');
+    assignBtn.textContent = module.weekNumber ? 'Reassign Week' : 'Assign to Week';
+    assignBtn.addEventListener('click', () => openWeekAssignModal(classIndex, moduleIndex));
+    actions.appendChild(assignBtn);
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.textContent = 'Delete';
+    deleteBtn.addEventListener('click', () => deleteModule(classIndex, moduleIndex));
+    actions.appendChild(deleteBtn);
+
+    div.appendChild(actions);
+
+    return div;
+}
+
+function addClass() {
+    const input = document.getElementById('newClassName');
+    const name = input.value.trim();
+
+    if (!name) return;
+
+    const classes = getClasses();
+    classes.push({
+        id: generateId(),
+        name: name,
+        modules: []
+    });
+
+    saveClasses(classes);
+    input.value = '';
+    renderClasses();
+}
+
+function deleteClass(index) {
+    if (!confirm('Delete this class and all its modules?')) return;
+
+    const classes = getClasses();
+    classes.splice(index, 1);
+    saveClasses(classes);
+    renderClasses();
+    if (currentView === 'backlog') {
+        renderBacklog();
+    }
+}
+
+function addModule(classIndex, moduleName) {
+    if (!moduleName) return;
+
+    const classes = getClasses();
+    if (!classes[classIndex].modules) {
+        classes[classIndex].modules = [];
+    }
+
+    classes[classIndex].modules.push({
+        id: generateId(),
+        name: moduleName,
+        weekNumber: null,
+        assignedToBacklog: false
+    });
+
+    saveClasses(classes);
+    renderClasses();
+}
+
+function deleteModule(classIndex, moduleIndex) {
+    if (!confirm('Delete this module?')) return;
+
+    const classes = getClasses();
+    classes[classIndex].modules.splice(moduleIndex, 1);
+    saveClasses(classes);
+    renderClasses();
+    if (currentView === 'backlog') {
+        renderBacklog();
+    }
+}
+
+function openWeekAssignModal(classIndex, moduleIndex) {
+    assigningModuleToWeek = { classIndex, moduleIndex };
+
+    const select = document.getElementById('weekSelector');
+    select.innerHTML = '';
+
+    ACADEMIC_WEEKS.forEach((week, index) => {
+        const option = document.createElement('option');
+        option.value = index;
+        option.textContent = `Week ${week.weekNumber} - ${week.semester} (${formatWeekDateRange(week.startDate, week.endDate)})`;
+        select.appendChild(option);
+    });
+
+    document.getElementById('assignWeekModal').classList.add('active');
+}
+
+function closeWeekModal() {
+    document.getElementById('assignWeekModal').classList.remove('active');
+    assigningModuleToWeek = null;
+}
+
+function assignModuleToWeek() {
+    if (!assigningModuleToWeek) return;
+
+    const { classIndex, moduleIndex } = assigningModuleToWeek;
+    const weekIndex = parseInt(document.getElementById('weekSelector').value);
+    const week = ACADEMIC_WEEKS[weekIndex];
+
+    const classes = getClasses();
+    classes[classIndex].modules[moduleIndex].weekNumber = week.weekNumber;
+    classes[classIndex].modules[moduleIndex].weekIndex = weekIndex;
+    classes[classIndex].modules[moduleIndex].semester = week.semester;
+
+    saveClasses(classes);
+    closeWeekModal();
+    renderClasses();
+    if (currentView === 'backlog') {
+        renderBacklog();
+    }
+}
+
+// ============================================
+// MOVE TASK TO BACKLOG
+// ============================================
+
+function moveTaskToBacklog(dateStr, index) {
+    const tasks = getTasksForDate(dateStr, currentContext);
+    const task = tasks[index];
+
+    // Convert to backlog task
+    const backlogTask = {
+        id: task.id,
+        title: task.title,
+        notes: task.notes,
+        status: task.status
+    };
+
+    // Add to backlog
+    const backlog = getBacklog();
+    backlog[currentContext].push(backlogTask);
+    saveBacklog(backlog);
+
+    // Remove from tasks
+    tasks.splice(index, 1);
+    saveTasksForDate(dateStr, currentContext, tasks);
+
+    // Re-render
+    renderDayTasks();
+    renderCalendar();
+    renderStats();
+
+    alert('Task moved to backlog');
+}
+
+function moveTaskToBacklogFromTasksPage(index) {
+    const tasks = getTasksForDate(tasksViewDate, currentContext);
+    const task = tasks[index];
+
+    // Convert to backlog task
+    const backlogTask = {
+        id: task.id,
+        title: task.title,
+        notes: task.notes,
+        status: task.status
+    };
+
+    // Add to backlog
+    const backlog = getBacklog();
+    backlog[currentContext].push(backlogTask);
+    saveBacklog(backlog);
+
+    // Remove from tasks
+    tasks.splice(index, 1);
+    saveTasksForDate(tasksViewDate, currentContext, tasks);
+
+    // Re-render
+    renderTasksView();
+    renderCalendar();
+
+    alert('Task moved to backlog');
+}
+
+// ============================================
 // INITIALIZATION
 // ============================================
 
 // Auto-generate recurring tasks on load
 window.addEventListener('load', () => {
     generateRecurringTasks();
+    updateAllStatusDropdowns();
+    updateAllCategoryDropdowns();
 });

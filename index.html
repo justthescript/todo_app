@@ -34,6 +34,8 @@
             <button class="nav-btn" data-view="backlog">Backlog</button>
             <button class="nav-btn" data-view="recurring">Recurring Tasks</button>
             <button class="nav-btn" data-view="mass-entry">Mass Entry</button>
+            <button class="nav-btn" data-view="classes">Classes</button>
+            <button class="nav-btn" data-view="settings">Settings</button>
         </nav>
 
         <!-- Dashboard View -->
@@ -216,7 +218,7 @@
                 <button id="addMassEntryRow">+ Add Row</button>
                 <button id="saveMassEntryBtn">Save All</button>
             </div>
-            
+
             <div class="table-container">
                 <table id="massEntryTable">
                     <thead>
@@ -232,6 +234,51 @@
                     <tbody id="massEntryTableBody">
                     </tbody>
                 </table>
+            </div>
+        </div>
+
+        <!-- Classes View (School) -->
+        <div id="classesView" class="view">
+            <h2>Classes & Modules</h2>
+
+            <div class="classes-container">
+                <!-- Add Class Form -->
+                <div class="add-class-form">
+                    <h3>Add New Class</h3>
+                    <input type="text" id="newClassName" placeholder="Class name...">
+                    <button id="addClassBtn">Add Class</button>
+                </div>
+
+                <!-- Classes List -->
+                <div id="classesList" class="classes-list"></div>
+            </div>
+        </div>
+
+        <!-- Settings View -->
+        <div id="settingsView" class="view">
+            <h2>Settings</h2>
+
+            <div class="settings-container">
+                <!-- Manage Statuses -->
+                <div class="settings-section">
+                    <h3>Manage Task Statuses</h3>
+                    <div class="add-item-form">
+                        <input type="text" id="newStatusName" placeholder="Status name...">
+                        <input type="color" id="newStatusColor" value="#667eea">
+                        <button id="addStatusBtn">Add Status</button>
+                    </div>
+                    <div id="statusesList" class="settings-list"></div>
+                </div>
+
+                <!-- Manage Categories -->
+                <div class="settings-section">
+                    <h3>Manage Backlog Categories</h3>
+                    <div class="add-item-form">
+                        <input type="text" id="newCategoryName" placeholder="Category name...">
+                        <button id="addCategoryBtn">Add Category</button>
+                    </div>
+                    <div id="categoriesList" class="settings-list"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -261,6 +308,18 @@
             <input type="date" id="assignDatePicker">
             <button id="assignDateBtn">Assign</button>
             <button id="closeAssignModal" class="close-modal-btn">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Assign Week Modal (for school modules) -->
+    <div id="assignWeekModal" class="modal">
+        <div class="modal-content">
+            <h3>Assign to Week</h3>
+            <select id="weekSelector">
+                <!-- Options will be populated by JavaScript -->
+            </select>
+            <button id="assignWeekBtn">Assign to Week</button>
+            <button id="closeWeekModal" class="close-modal-btn">Cancel</button>
         </div>
     </div>
 
