@@ -29,6 +29,7 @@
         <!-- Navigation -->
         <nav class="main-nav">
             <button class="nav-btn active" data-view="dashboard">Dashboard</button>
+            <button class="nav-btn" data-view="tasks">Tasks</button>
             <button class="nav-btn" data-view="backlog">Backlog</button>
             <button class="nav-btn" data-view="recurring">Recurring Tasks</button>
             <button class="nav-btn" data-view="mass-entry">Mass Entry</button>
@@ -98,6 +99,49 @@
                     <!-- Tasks List -->
                     <div id="dayTasksList" class="tasks-list"></div>
                 </section>
+            </div>
+        </div>
+
+        <!-- Tasks View -->
+        <div id="tasksView" class="view">
+            <div class="tasks-page">
+                <!-- Date Navigation Header -->
+                <div class="tasks-date-header">
+                    <button id="prevDayBtn" class="day-nav-btn" aria-label="Previous day">&larr;</button>
+                    <h2 id="tasksDateTitle">Today</h2>
+                    <button id="nextDayBtn" class="day-nav-btn" aria-label="Next day">&rarr;</button>
+                </div>
+
+                <!-- Add Task Form -->
+                <div class="add-task-form">
+                    <input type="text" id="tasksNewTaskTitle" placeholder="Task title..." />
+                    <textarea id="tasksNewTaskNotes" placeholder="Notes (optional)..."></textarea>
+                    <select id="tasksNewTaskStatus">
+                        <option value="urgent">Urgent</option>
+                        <option value="today">Today</option>
+                        <option value="leisure">Leisure</option>
+                        <option value="improvements">Improvements</option>
+                    </select>
+                    <button id="tasksAddTaskBtn">Add Task</button>
+                </div>
+
+                <!-- Active Tasks Section -->
+                <div class="task-section">
+                    <h3>Active Tasks</h3>
+                    <div id="activeTasksList" class="tasks-list"></div>
+                </div>
+
+                <!-- Completed Tasks Section -->
+                <div class="task-section">
+                    <h3>Completed</h3>
+                    <div id="completedTasksList" class="tasks-list"></div>
+                </div>
+
+                <!-- Deferred Tasks Section -->
+                <div class="task-section">
+                    <h3>Deferred</h3>
+                    <div id="deferredTasksList" class="tasks-list"></div>
+                </div>
             </div>
         </div>
 
@@ -193,7 +237,7 @@
             <div class="date-picker-option">
                 <label>Or select a date:</label>
                 <input type="date" id="deferDatePicker">
-                <button id="deferCustomDateBtn">Move to Date</button>
+                <button id="deferCustomDateBtn">Defer to Date</button>
             </div>
             <button id="closeDeferModal" class="close-modal-btn">Cancel</button>
         </div>
