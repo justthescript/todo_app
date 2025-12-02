@@ -43,7 +43,7 @@
                 <aside class="focus-panel">
                     <h2>Focus for Today</h2>
                     <div id="focusTasks" class="focus-tasks"></div>
-                    
+
                     <div class="stats-panel">
                         <h3>Today's Stats</h3>
                         <div id="todayStats" class="stats-grid"></div>
@@ -51,13 +51,23 @@
                 </aside>
 
                 <!-- Calendar Section -->
-                <section class="calendar-section">
+                <section class="calendar-section" id="calendarSection">
                     <div class="calendar-header">
                         <button id="prevMonth" aria-label="Previous month">&larr;</button>
                         <h2 id="currentMonth"></h2>
                         <button id="nextMonth" aria-label="Next month">&rarr;</button>
                     </div>
                     <div id="calendar" class="calendar-grid"></div>
+                </section>
+
+                <!-- School Week View Section -->
+                <section class="school-week-section" id="schoolWeekSection" style="display: none;">
+                    <div class="week-header">
+                        <button id="prevWeek" aria-label="Previous week">&larr;</button>
+                        <h2 id="currentWeekTitle">Week 1</h2>
+                        <button id="nextWeek" aria-label="Next week">&rarr;</button>
+                    </div>
+                    <div id="weekBlocks" class="week-blocks"></div>
                 </section>
 
                 <!-- Day Tasks Section -->

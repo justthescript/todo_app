@@ -42,6 +42,34 @@ let currentMonth = new Date();
 let tasksViewDate = null; // Date currently being viewed in Tasks page
 let deferringTask = null; // Task being deferred
 let assigningBacklogTask = null; // Backlog task being assigned
+let currentWeekIndex = 0; // Current week index for School context
+
+// ============================================
+// SCHOOL ACADEMIC CALENDAR
+// ============================================
+
+/**
+ * Define academic calendar weeks (Wednesday to Tuesday)
+ * Fall Semester: Weeks 8-10
+ * Spring Semester: Weeks 1-10
+ */
+const ACADEMIC_WEEKS = [
+    // Fall Semester
+    { weekNumber: 8, semester: 'Fall', startDate: '2024-12-03', endDate: '2024-12-09' },
+    { weekNumber: 9, semester: 'Fall', startDate: '2024-12-10', endDate: '2024-12-16' },
+    { weekNumber: 10, semester: 'Fall', startDate: '2024-12-17', endDate: '2024-12-21' },
+    // Spring Semester
+    { weekNumber: 1, semester: 'Spring', startDate: '2025-01-07', endDate: '2025-01-13' },
+    { weekNumber: 2, semester: 'Spring', startDate: '2025-01-14', endDate: '2025-01-20' },
+    { weekNumber: 3, semester: 'Spring', startDate: '2025-01-21', endDate: '2025-01-27' },
+    { weekNumber: 4, semester: 'Spring', startDate: '2025-01-28', endDate: '2025-02-03' },
+    { weekNumber: 5, semester: 'Spring', startDate: '2025-02-04', endDate: '2025-02-10' },
+    { weekNumber: 6, semester: 'Spring', startDate: '2025-02-11', endDate: '2025-02-17' },
+    { weekNumber: 7, semester: 'Spring', startDate: '2025-02-18', endDate: '2025-02-24' },
+    { weekNumber: 8, semester: 'Spring', startDate: '2025-02-25', endDate: '2025-03-03' },
+    { weekNumber: 9, semester: 'Spring', startDate: '2025-03-04', endDate: '2025-03-10' },
+    { weekNumber: 10, semester: 'Spring', startDate: '2025-03-17', endDate: '2025-03-22' }
+];
 
 // ============================================
 // DATA MANAGEMENT
@@ -202,6 +230,80 @@ function isToday(dateStr) {
 }
 
 // ============================================
+// SCHOOL WEEK HELPERS
+// ============================================
+
+/**
+ * Get current week index based on today's date
+ */
+function getCurrentWeekIndex() {
+    const today = formatDate(new Date());
+    for (let i = 0; i < ACADEMIC_WEEKS.length; i++) {
+        const week = ACADEMIC_WEEKS[i];
+        if (today >= week.startDate && today <= week.endDate) {
+            return i;
+        }
+    }
+    // If not in any academic week, return first week
+    return 0;
+}
+
+/**
+ * Get all dates in a week range
+ */
+function getDatesInWeek(startDate, endDate) {
+    const dates = [];
+    const start = parseDate(startDate);
+    const end = parseDate(endDate);
+
+    let current = new Date(start);
+    while (current <= end) {
+        dates.push(formatDate(current));
+        current.setDate(current.getDate() + 1);
+    }
+
+    return dates;
+}
+
+/**
+ * Get all tasks for a week
+ */
+function getTasksForWeek(weekIndex) {
+    const week = ACADEMIC_WEEKS[weekIndex];
+    const dates = getDatesInWeek(week.startDate, week.endDate);
+    const allTasks = [];
+
+    dates.forEach(dateStr => {
+        const tasks = getTasksForDate(dateStr, 'school');
+        tasks.forEach(task => {
+            allTasks.push({
+                ...task,
+                date: dateStr
+            });
+        });
+    });
+
+    return allTasks;
+}
+
+/**
+ * Format week date range for display
+ */
+function formatWeekDateRange(startDate, endDate) {
+    const start = parseDate(startDate);
+    const end = parseDate(endDate);
+
+    const startMonth = start.toLocaleDateString('en-US', { month: 'short' });
+    const endMonth = end.toLocaleDateString('en-US', { month: 'short' });
+
+    if (startMonth === endMonth) {
+        return `${startMonth} ${start.getDate()}-${end.getDate()}`;
+    } else {
+        return `${startMonth} ${start.getDate()} - ${endMonth} ${end.getDate()}`;
+    }
+}
+
+// ============================================
 // INITIALIZATION
 // ============================================
 
@@ -223,6 +325,9 @@ function initializeApp() {
     // Set initial selected date to today
     selectedDate = formatDate(currentDate);
     tasksViewDate = formatDate(currentDate);
+
+    // Set initial week index for school
+    currentWeekIndex = getCurrentWeekIndex();
 
     // Render initial views
     renderCalendar();
@@ -265,10 +370,25 @@ function setupEventListeners() {
         currentMonth.setMonth(currentMonth.getMonth() - 1);
         renderCalendar();
     });
-    
+
     document.getElementById('nextMonth').addEventListener('click', () => {
         currentMonth.setMonth(currentMonth.getMonth() + 1);
         renderCalendar();
+    });
+
+    // School week navigation
+    document.getElementById('prevWeek').addEventListener('click', () => {
+        if (currentWeekIndex > 0) {
+            currentWeekIndex--;
+            renderSchoolWeeks();
+        }
+    });
+
+    document.getElementById('nextWeek').addEventListener('click', () => {
+        if (currentWeekIndex < ACADEMIC_WEEKS.length - 1) {
+            currentWeekIndex++;
+            renderSchoolWeeks();
+        }
     });
     
     // Day tasks
@@ -385,7 +505,16 @@ function switchView(view) {
 
 function refreshCurrentView() {
     if (currentView === 'dashboard') {
-        renderCalendar();
+        // Toggle between calendar and week view based on context
+        if (currentContext === 'school') {
+            document.getElementById('calendarSection').style.display = 'none';
+            document.getElementById('schoolWeekSection').style.display = 'block';
+            renderSchoolWeeks();
+        } else {
+            document.getElementById('calendarSection').style.display = 'block';
+            document.getElementById('schoolWeekSection').style.display = 'none';
+            renderCalendar();
+        }
         renderDayTasks();
         renderFocusPanel();
         renderStats();
@@ -514,6 +643,100 @@ function createCalendarDay(day, otherMonth, monthOffset) {
     });
 
     return dayElement;
+}
+
+// ============================================
+// SCHOOL WEEK VIEW
+// ============================================
+
+function renderSchoolWeeks() {
+    const weekBlocksContainer = document.getElementById('weekBlocks');
+    const weekTitle = document.getElementById('currentWeekTitle');
+
+    // Clear container
+    weekBlocksContainer.innerHTML = '';
+
+    // Get current week
+    const currentWeek = ACADEMIC_WEEKS[currentWeekIndex];
+
+    // Update title
+    weekTitle.textContent = `Week ${currentWeek.weekNumber} - ${currentWeek.semester} ${currentWeek.semester === 'Fall' ? '2024' : '2025'}`;
+
+    // Update navigation buttons
+    document.getElementById('prevWeek').disabled = currentWeekIndex === 0;
+    document.getElementById('nextWeek').disabled = currentWeekIndex === ACADEMIC_WEEKS.length - 1;
+
+    // Render all weeks
+    ACADEMIC_WEEKS.forEach((week, index) => {
+        const weekBlock = createWeekBlock(week, index);
+        weekBlocksContainer.appendChild(weekBlock);
+    });
+}
+
+function createWeekBlock(week, index) {
+    const weekBlock = document.createElement('div');
+    weekBlock.className = 'week-block';
+
+    // Check if this is the current week
+    const today = formatDate(new Date());
+    if (today >= week.startDate && today <= week.endDate) {
+        weekBlock.classList.add('current-week');
+    }
+
+    // Header
+    const header = document.createElement('div');
+    header.className = 'week-block-header';
+
+    const title = document.createElement('div');
+    title.className = 'week-block-title';
+    title.textContent = `Week ${week.weekNumber} - ${week.semester}`;
+    header.appendChild(title);
+
+    const dateRange = document.createElement('div');
+    dateRange.className = 'week-block-date-range';
+    dateRange.textContent = formatWeekDateRange(week.startDate, week.endDate);
+    header.appendChild(dateRange);
+
+    weekBlock.appendChild(header);
+
+    // Get tasks for this week
+    const weekTasks = getTasksForWeek(index);
+    const urgentTasks = weekTasks.filter(t => t.status === 'urgent' && !t.completed);
+    const completedTasks = weekTasks.filter(t => t.completed);
+
+    // Stats
+    const stats = document.createElement('div');
+    stats.className = 'week-block-stats';
+
+    const totalStat = document.createElement('div');
+    totalStat.className = 'week-stat';
+    totalStat.innerHTML = `<span class="week-stat-badge">${weekTasks.length}</span> Total Tasks`;
+    stats.appendChild(totalStat);
+
+    if (urgentTasks.length > 0) {
+        const urgentStat = document.createElement('div');
+        urgentStat.className = 'week-stat';
+        urgentStat.innerHTML = `<span class="week-stat-badge" style="background: var(--urgent-color); color: white;">${urgentTasks.length}</span> Urgent`;
+        stats.appendChild(urgentStat);
+    }
+
+    const completedStat = document.createElement('div');
+    completedStat.className = 'week-stat';
+    completedStat.innerHTML = `<span class="week-stat-badge" style="background: var(--leisure-color); color: white;">${completedTasks.length}</span> Completed`;
+    stats.appendChild(completedStat);
+
+    weekBlock.appendChild(stats);
+
+    // Click to view week details in Tasks view
+    weekBlock.addEventListener('click', () => {
+        // Set the tasksViewDate to the first date of the week
+        tasksViewDate = week.startDate;
+        currentView = 'tasks';
+        updateNavButtons();
+        switchView('tasks');
+    });
+
+    return weekBlock;
 }
 
 // ============================================
