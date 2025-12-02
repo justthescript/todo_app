@@ -411,6 +411,85 @@ body {
 }
 
 /* ============================================
+   TASKS PAGE
+   ============================================ */
+
+.tasks-page {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.tasks-date-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--bg-secondary);
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px var(--shadow);
+}
+
+.tasks-date-header h2 {
+    font-size: 1.5rem;
+    text-align: center;
+    flex: 1;
+}
+
+.day-nav-btn {
+    background: var(--accent-primary);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1.2rem;
+    transition: background 0.3s ease;
+    min-width: 60px;
+}
+
+.day-nav-btn:hover {
+    background: var(--accent-hover);
+}
+
+.task-section {
+    background: var(--bg-secondary);
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px var(--shadow);
+}
+
+.task-section h3 {
+    margin-bottom: 15px;
+    font-size: 1.2rem;
+    color: var(--text-primary);
+    border-bottom: 2px solid var(--border-color);
+    padding-bottom: 10px;
+}
+
+.task-section .tasks-list {
+    min-height: 50px;
+}
+
+.deferred-date-link {
+    display: inline-block;
+    margin-top: 5px;
+    padding: 4px 8px;
+    background: var(--bg-tertiary);
+    border-radius: 4px;
+    font-size: 0.85rem;
+    color: var(--accent-primary);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.deferred-date-link:hover {
+    background: var(--accent-primary);
+    color: white;
+}
+
+/* ============================================
    DAY TASKS SECTION
    ============================================ */
 

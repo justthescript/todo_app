@@ -33,10 +33,11 @@
 // ============================================
 
 let currentContext = 'work'; // work | rescue | personal
-let currentView = 'dashboard'; // dashboard | backlog | recurring | mass-entry
+let currentView = 'dashboard'; // dashboard | tasks | backlog | recurring | mass-entry
 let currentDate = new Date();
 let selectedDate = null;
 let currentMonth = new Date();
+let tasksViewDate = null; // Date currently being viewed in Tasks page
 let deferringTask = null; // Task being deferred
 let assigningBacklogTask = null; // Backlog task being assigned
 
@@ -186,19 +187,20 @@ function initializeApp() {
         document.body.setAttribute('data-theme', 'dark');
         document.querySelector('.theme-icon').textContent = '☀️';
     }
-    
+
     // Generate recurring tasks for current month
     generateRecurringTasks();
-    
+
     // Set initial selected date to today
     selectedDate = formatDate(currentDate);
-    
+    tasksViewDate = formatDate(currentDate);
+
     // Render initial views
     renderCalendar();
     renderDayTasks();
     renderFocusPanel();
     renderStats();
-    
+
     // Setup event listeners
     setupEventListeners();
 }
@@ -245,10 +247,31 @@ function setupEventListeners() {
     document.getElementById('newTaskTitle').addEventListener('keypress', (e) => {
         if (e.key === 'Enter') addTask();
     });
-    
+
     document.getElementById('hideCompletedToggle').addEventListener('change', renderDayTasks);
     document.getElementById('taskSearch').addEventListener('input', renderDayTasks);
     document.getElementById('statusFilter').addEventListener('change', renderDayTasks);
+
+    // Tasks page navigation
+    document.getElementById('prevDayBtn').addEventListener('click', () => {
+        const date = parseDate(tasksViewDate);
+        date.setDate(date.getDate() - 1);
+        tasksViewDate = formatDate(date);
+        renderTasksView();
+    });
+
+    document.getElementById('nextDayBtn').addEventListener('click', () => {
+        const date = parseDate(tasksViewDate);
+        date.setDate(date.getDate() + 1);
+        tasksViewDate = formatDate(date);
+        renderTasksView();
+    });
+
+    // Tasks page - add task
+    document.getElementById('tasksAddTaskBtn').addEventListener('click', addTaskFromTasksPage);
+    document.getElementById('tasksNewTaskTitle').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') addTaskFromTasksPage();
+    });
     
     // Backlog
     document.getElementById('addBacklogTaskBtn').addEventListener('click', addBacklogTask);
@@ -307,19 +330,22 @@ function updateNavButtons() {
 function switchView(view) {
     // Hide all views
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-    
+
     // Show selected view
     const viewMap = {
         'dashboard': 'dashboardView',
+        'tasks': 'tasksView',
         'backlog': 'backlogView',
         'recurring': 'recurringView',
         'mass-entry': 'massEntryView'
     };
-    
+
     document.getElementById(viewMap[view]).classList.add('active');
-    
+
     // Render view content
-    if (view === 'backlog') {
+    if (view === 'tasks') {
+        renderTasksView();
+    } else if (view === 'backlog') {
         renderBacklog();
     } else if (view === 'recurring') {
         renderRecurringTasks();
@@ -334,6 +360,8 @@ function refreshCurrentView() {
         renderDayTasks();
         renderFocusPanel();
         renderStats();
+    } else if (currentView === 'tasks') {
+        renderTasksView();
     } else if (currentView === 'backlog') {
         renderBacklog();
     } else if (currentView === 'recurring') {
@@ -446,14 +474,16 @@ function createCalendarDay(day, otherMonth, monthOffset) {
     }
     
     dayElement.appendChild(indicators);
-    
+
     // Click handler
     dayElement.addEventListener('click', () => {
-        selectedDate = dateStr;
-        renderCalendar();
-        renderDayTasks();
+        // Navigate to Tasks view with this date
+        tasksViewDate = dateStr;
+        currentView = 'tasks';
+        updateNavButtons();
+        switchView('tasks');
     });
-    
+
     return dayElement;
 }
 
@@ -584,7 +614,7 @@ function createTaskElement(task, index, dateStr) {
     
     const deferBtn = document.createElement('button');
     deferBtn.textContent = 'Defer';
-    deferBtn.addEventListener('click', () => openDeferModal(task, dateStr));
+    deferBtn.addEventListener('click', () => openDeferModal(task, dateStr, index));
     actions.appendChild(deferBtn);
     
     const deleteBtn = document.createElement('button');
@@ -668,10 +698,10 @@ function deleteTask(dateStr, index) {
 // DEFER FUNCTIONALITY
 // ============================================
 
-function openDeferModal(task, fromDate) {
-    deferringTask = { task, fromDate };
+function openDeferModal(task, fromDate, index) {
+    deferringTask = { task, fromDate, index };
     document.getElementById('deferModal').classList.add('active');
-    
+
     // Set min date to tomorrow
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -724,27 +754,270 @@ function deferToCustomDate() {
 
 function deferTask(targetDate) {
     if (!deferringTask) return;
-    
-    const { task, fromDate } = deferringTask;
-    
-    // Remove from original date
-    const fromTasks = getTasksForDate(fromDate, currentContext);
-    const taskIndex = fromTasks.findIndex(t => t.id === task.id);
+
+    const { task, fromDate, index } = deferringTask;
+
+    // Mark the task as deferred (keep it in place)
+    const tasks = getTasksForDate(fromDate, currentContext);
+    const taskIndex = index !== undefined ? index : tasks.findIndex(t => t.id === task.id);
+
     if (taskIndex !== -1) {
-        fromTasks.splice(taskIndex, 1);
-        saveTasksForDate(fromDate, currentContext, fromTasks);
+        tasks[taskIndex].deferredTo = targetDate;
+        saveTasksForDate(fromDate, currentContext, tasks);
     }
-    
-    // Add to target date
-    const toTasks = getTasksForDate(targetDate, currentContext);
-    toTasks.push(task);
-    saveTasksForDate(targetDate, currentContext, toTasks);
-    
+
     closeDeferModal();
-    renderDayTasks();
+
+    // Re-render current view
+    if (currentView === 'tasks') {
+        renderTasksView();
+    } else {
+        renderDayTasks();
+    }
     renderCalendar();
     renderFocusPanel();
     renderStats();
+}
+
+// ============================================
+// TASKS PAGE VIEW
+// ============================================
+
+function renderTasksView() {
+    if (!tasksViewDate) {
+        tasksViewDate = formatDate(new Date());
+    }
+
+    const titleElement = document.getElementById('tasksDateTitle');
+    const activeList = document.getElementById('activeTasksList');
+    const completedList = document.getElementById('completedTasksList');
+    const deferredList = document.getElementById('deferredTasksList');
+
+    // Update title
+    const date = parseDate(tasksViewDate);
+    const dateStr = date.toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+    titleElement.textContent = dateStr;
+
+    // Get all tasks for this date
+    const tasks = getTasksForDate(tasksViewDate, currentContext);
+
+    // Separate tasks into sections
+    const activeTasks = tasks.filter(t => !t.completed && !t.deferredTo);
+    const completedTasks = tasks.filter(t => t.completed);
+    const deferredTasks = tasks.filter(t => t.deferredTo && !t.completed);
+
+    // Render active tasks
+    if (activeTasks.length === 0) {
+        activeList.innerHTML = '<div class="empty-state"><p>No active tasks</p></div>';
+    } else {
+        activeList.innerHTML = '';
+        activeTasks.forEach((task, index) => {
+            const taskElement = createTasksPageTaskElement(task, index, 'active');
+            activeList.appendChild(taskElement);
+        });
+    }
+
+    // Render completed tasks
+    if (completedTasks.length === 0) {
+        completedList.innerHTML = '<div class="empty-state"><p>No completed tasks</p></div>';
+    } else {
+        completedList.innerHTML = '';
+        completedTasks.forEach((task, index) => {
+            const taskElement = createTasksPageTaskElement(task, index, 'completed');
+            completedList.appendChild(taskElement);
+        });
+    }
+
+    // Render deferred tasks
+    if (deferredTasks.length === 0) {
+        deferredList.innerHTML = '<div class="empty-state"><p>No deferred tasks</p></div>';
+    } else {
+        deferredList.innerHTML = '';
+        deferredTasks.forEach((task, index) => {
+            const taskElement = createTasksPageTaskElement(task, index, 'deferred');
+            deferredList.appendChild(taskElement);
+        });
+    }
+}
+
+function createTasksPageTaskElement(task, taskIndex, section) {
+    const taskElement = document.createElement('div');
+    taskElement.className = `task-item ${task.status}`;
+
+    if (task.completed) {
+        taskElement.classList.add('completed');
+    }
+
+    // Find the actual index in the full tasks array
+    const allTasks = getTasksForDate(tasksViewDate, currentContext);
+    const actualIndex = allTasks.findIndex(t => t.id === task.id);
+
+    // Header
+    const header = document.createElement('div');
+    header.className = 'task-header';
+
+    const titleGroup = document.createElement('div');
+    titleGroup.className = 'task-title-group';
+
+    const titleContainer = document.createElement('div');
+    titleContainer.style.display = 'flex';
+    titleContainer.style.alignItems = 'center';
+
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.className = 'task-checkbox';
+    checkbox.checked = task.completed;
+    checkbox.addEventListener('change', () => {
+        toggleTaskCompleteFromTasksPage(actualIndex);
+    });
+
+    const title = document.createElement('div');
+    title.className = 'task-title';
+    title.textContent = task.title;
+
+    titleContainer.appendChild(checkbox);
+    titleContainer.appendChild(title);
+    titleGroup.appendChild(titleContainer);
+
+    if (task.notes) {
+        const notes = document.createElement('div');
+        notes.className = 'task-notes';
+        notes.textContent = task.notes;
+        titleGroup.appendChild(notes);
+    }
+
+    // If deferred, show the deferred date
+    if (task.deferredTo) {
+        const deferredInfo = document.createElement('div');
+        const deferredDate = parseDate(task.deferredTo);
+        const deferredDateStr = deferredDate.toLocaleDateString('en-US', {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric'
+        });
+
+        const deferredLink = document.createElement('span');
+        deferredLink.className = 'deferred-date-link';
+        deferredLink.textContent = `Deferred to: ${deferredDateStr}`;
+        deferredLink.addEventListener('click', () => {
+            tasksViewDate = task.deferredTo;
+            renderTasksView();
+        });
+
+        deferredInfo.appendChild(deferredLink);
+        titleGroup.appendChild(deferredInfo);
+    }
+
+    const statusBadge = document.createElement('span');
+    statusBadge.className = `status-badge ${task.status}`;
+    statusBadge.textContent = task.status;
+    titleGroup.appendChild(statusBadge);
+
+    header.appendChild(titleGroup);
+
+    // Actions
+    const actions = document.createElement('div');
+    actions.className = 'task-actions';
+
+    // Only show defer button for active tasks
+    if (section === 'active') {
+        const deferBtn = document.createElement('button');
+        deferBtn.textContent = 'Defer';
+        deferBtn.addEventListener('click', () => openDeferModalFromTasksPage(task, actualIndex));
+        actions.appendChild(deferBtn);
+    }
+
+    // Show undefer button for deferred tasks
+    if (section === 'deferred') {
+        const undeferBtn = document.createElement('button');
+        undeferBtn.textContent = 'Undefer';
+        undeferBtn.addEventListener('click', () => undeferTask(actualIndex));
+        actions.appendChild(undeferBtn);
+    }
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.textContent = 'Delete';
+    deleteBtn.addEventListener('click', () => deleteTaskFromTasksPage(actualIndex));
+    actions.appendChild(deleteBtn);
+
+    header.appendChild(actions);
+    taskElement.appendChild(header);
+
+    return taskElement;
+}
+
+function addTaskFromTasksPage() {
+    const titleInput = document.getElementById('tasksNewTaskTitle');
+    const notesInput = document.getElementById('tasksNewTaskNotes');
+    const statusSelect = document.getElementById('tasksNewTaskStatus');
+
+    const title = titleInput.value.trim();
+    if (!title) return;
+
+    const task = {
+        id: generateId(),
+        title: title,
+        notes: notesInput.value.trim(),
+        status: statusSelect.value,
+        completed: false,
+        priority: 0
+    };
+
+    const tasks = getTasksForDate(tasksViewDate, currentContext);
+    tasks.push(task);
+    saveTasksForDate(tasksViewDate, currentContext, tasks);
+
+    // Clear inputs
+    titleInput.value = '';
+    notesInput.value = '';
+
+    // Re-render
+    renderTasksView();
+    renderCalendar();
+}
+
+function toggleTaskCompleteFromTasksPage(index) {
+    const tasks = getTasksForDate(tasksViewDate, currentContext);
+    tasks[index].completed = !tasks[index].completed;
+    saveTasksForDate(tasksViewDate, currentContext, tasks);
+    renderTasksView();
+    renderCalendar();
+    if (currentView === 'dashboard') {
+        renderFocusPanel();
+        renderStats();
+    }
+}
+
+function deleteTaskFromTasksPage(index) {
+    if (!confirm('Delete this task?')) return;
+
+    const tasks = getTasksForDate(tasksViewDate, currentContext);
+    tasks.splice(index, 1);
+    saveTasksForDate(tasksViewDate, currentContext, tasks);
+    renderTasksView();
+    renderCalendar();
+}
+
+function openDeferModalFromTasksPage(task, index) {
+    deferringTask = { task, fromDate: tasksViewDate, index };
+    document.getElementById('deferModal').classList.add('active');
+
+    // Set min date to tomorrow
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    document.getElementById('deferDatePicker').min = formatDate(tomorrow);
+}
+
+function undeferTask(index) {
+    const tasks = getTasksForDate(tasksViewDate, currentContext);
+    delete tasks[index].deferredTo;
+    saveTasksForDate(tasksViewDate, currentContext, tasks);
+    renderTasksView();
 }
 
 // ============================================
@@ -754,31 +1027,31 @@ function deferTask(targetDate) {
 function renderFocusPanel() {
     const focusContainer = document.getElementById('focusTasks');
     const todayStr = formatDate(new Date());
-    
+
     const tasks = getTasksForDate(todayStr, currentContext);
-    const focusTasks = tasks.filter(t => 
-        (t.status === 'urgent' || t.status === 'today') && !t.completed
+    const focusTasks = tasks.filter(t =>
+        (t.status === 'urgent' || t.status === 'today') && !t.completed && !t.deferredTo
     );
-    
+
     if (focusTasks.length === 0) {
         focusContainer.innerHTML = '<div class="empty-state"><p>No urgent tasks for today</p></div>';
         return;
     }
-    
+
     focusContainer.innerHTML = '';
     focusTasks.forEach(task => {
         const taskElement = document.createElement('div');
         taskElement.className = `focus-task ${task.status}`;
-        
+
         const title = document.createElement('h4');
         title.textContent = task.title;
         taskElement.appendChild(title);
-        
+
         const badge = document.createElement('span');
         badge.className = `status-badge ${task.status}`;
         badge.textContent = task.status;
         taskElement.appendChild(badge);
-        
+
         focusContainer.appendChild(taskElement);
     });
 }
@@ -791,14 +1064,14 @@ function renderStats() {
     const statsContainer = document.getElementById('todayStats');
     const todayStr = formatDate(new Date());
     const tasks = getTasksForDate(todayStr, currentContext);
-    
+
     const totalTasks = tasks.length;
-    const urgentTasks = tasks.filter(t => t.status === 'urgent' && !t.completed).length;
-    const todayTasks = tasks.filter(t => t.status === 'today' && !t.completed).length;
-    
+    const urgentTasks = tasks.filter(t => t.status === 'urgent' && !t.completed && !t.deferredTo).length;
+    const todayTasks = tasks.filter(t => t.status === 'today' && !t.completed && !t.deferredTo).length;
+
     const backlog = getBacklog();
     const backlogCount = backlog[currentContext].length;
-    
+
     statsContainer.innerHTML = `
         <div class="stat-item">
             <div class="stat-value">${totalTasks}</div>
