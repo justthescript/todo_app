@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Context Task Manager</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Theme Toggle -->
+    <div class="theme-toggle">
+        <button id="themeToggleBtn" aria-label="Toggle theme">
+            <span class="theme-icon">🌙</span>
+        </button>
+    </div>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Header -->
+        <header class="app-header">
+            <h1>Task Manager</h1>
+            <div class="context-selector">
+                <button class="context-btn active" data-context="work">Work</button>
+                <button class="context-btn" data-context="rescue">Rescue</button>
+                <button class="context-btn" data-context="personal">Personal</button>
+            </div>
+        </header>
+
+        <!-- Navigation -->
+        <nav class="main-nav">
+            <button class="nav-btn active" data-view="dashboard">Dashboard</button>
+            <button class="nav-btn" data-view="backlog">Backlog</button>
+            <button class="nav-btn" data-view="recurring">Recurring Tasks</button>
+            <button class="nav-btn" data-view="mass-entry">Mass Entry</button>
+        </nav>
+
+        <!-- Dashboard View -->
+        <div id="dashboardView" class="view active">
+            <div class="dashboard-layout">
+                <!-- Focus Panel -->
+                <aside class="focus-panel">
+                    <h2>Focus for Today</h2>
+                    <div id="focusTasks" class="focus-tasks"></div>
+                    
+                    <div class="stats-panel">
+                        <h3>Today's Stats</h3>
+                        <div id="todayStats" class="stats-grid"></div>
+                    </div>
+                </aside>
+
+                <!-- Calendar Section -->
+                <section class="calendar-section">
+                    <div class="calendar-header">
+                        <button id="prevMonth" aria-label="Previous month">&larr;</button>
+                        <h2 id="currentMonth"></h2>
+                        <button id="nextMonth" aria-label="Next month">&rarr;</button>
+                    </div>
+                    <div id="calendar" class="calendar-grid"></div>
+                </section>
+
+                <!-- Day Tasks Section -->
+                <section class="day-tasks-section">
+                    <div class="day-tasks-header">
+                        <h2 id="selectedDayTitle">Select a day</h2>
+                        <div class="day-controls">
+                            <label class="toggle-label">
+                                <input type="checkbox" id="hideCompletedToggle">
+                                <span>Hide completed</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Search and Filter -->
+                    <div class="search-filter-bar">
+                        <input type="text" id="taskSearch" placeholder="Search tasks...">
+                        <select id="statusFilter">
+                            <option value="all">All Status</option>
+                            <option value="urgent">Urgent</option>
+                            <option value="today">Today</option>
+                            <option value="leisure">Leisure</option>
+                            <option value="improvements">Improvements</option>
+                        </select>
+                    </div>
+
+                    <!-- Add Task Form -->
+                    <div class="add-task-form">
+                        <input type="text" id="newTaskTitle" placeholder="Task title..." />
+                        <textarea id="newTaskNotes" placeholder="Notes (optional)..."></textarea>
+                        <select id="newTaskStatus">
+                            <option value="urgent">Urgent</option>
+                            <option value="today">Today</option>
+                            <option value="leisure">Leisure</option>
+                            <option value="improvements">Improvements</option>
+                        </select>
+                        <button id="addTaskBtn">Add Task</button>
+                    </div>
+
+                    <!-- Tasks List -->
+                    <div id="dayTasksList" class="tasks-list"></div>
+                </section>
+            </div>
+        </div>
+
+        <!-- Backlog View -->
+        <div id="backlogView" class="view">
+            <h2>Backlog</h2>
+            
+            <div class="add-task-form">
+                <input type="text" id="backlogTaskTitle" placeholder="Task title..." />
+                <textarea id="backlogTaskNotes" placeholder="Notes (optional)..."></textarea>
+                <select id="backlogTaskStatus">
+                    <option value="improvements">Improvements</option>
+                    <option value="work-quality">Work Quality</option>
+                    <option value="work-reduction">Work Reduction</option>
+                    <option value="revenue-increase">Revenue Increase</option>
+                </select>
+                <button id="addBacklogTaskBtn">Add to Backlog</button>
+            </div>
+
+            <div id="backlogTasksList" class="tasks-list"></div>
+        </div>
+
+        <!-- Recurring Tasks View -->
+        <div id="recurringView" class="view">
+            <h2>Recurring Tasks</h2>
+            
+            <div class="add-recurring-form">
+                <input type="text" id="recurringTaskTitle" placeholder="Task title..." />
+                <select id="recurringTaskStatus">
+                    <option value="urgent">Urgent</option>
+                    <option value="today">Today</option>
+                    <option value="leisure">Leisure</option>
+                    <option value="improvements">Improvements</option>
+                </select>
+                <select id="recurringFrequency">
+                    <option value="daily">Daily (Mon-Fri)</option>
+                    <option value="everyday">Every Day</option>
+                    <option value="weekly-mon">Weekly on Monday</option>
+                    <option value="weekly-tue">Weekly on Tuesday</option>
+                    <option value="weekly-wed">Weekly on Wednesday</option>
+                    <option value="weekly-thu">Weekly on Thursday</option>
+                    <option value="weekly-fri">Weekly on Friday</option>
+                    <option value="weekly-sat">Weekly on Saturday</option>
+                    <option value="weekly-sun">Weekly on Sunday</option>
+                    <option value="monthly-1">Monthly on 1st</option>
+                    <option value="monthly-15">Monthly on 15th</option>
+                    <option value="monthly-last">Monthly on Last Day</option>
+                    <option value="monthly-first-mon">Monthly 1st Monday</option>
+                    <option value="monthly-first-fri">Monthly 1st Friday</option>
+                </select>
+                <button id="addRecurringTaskBtn">Add Recurring Task</button>
+            </div>
+
+            <div id="recurringTasksList" class="recurring-tasks-list"></div>
+        </div>
+
+        <!-- Mass Entry View -->
+        <div id="massEntryView" class="view">
+            <h2>Mass Entry</h2>
+            <div class="mass-entry-controls">
+                <button id="addMassEntryRow">+ Add Row</button>
+                <button id="saveMassEntryBtn">Save All</button>
+            </div>
+            
+            <div class="table-container">
+                <table id="massEntryTable">
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Notes</th>
+                            <th>Context</th>
+                            <th>Status</th>
+                            <th>Start Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="massEntryTableBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Defer Modal -->
+    <div id="deferModal" class="modal">
+        <div class="modal-content">
+            <h3>Defer Task</h3>
+            <div class="defer-options">
+                <button class="defer-btn" data-defer="tomorrow">Tomorrow</button>
+                <button class="defer-btn" data-defer="next-week">Next Week (Monday)</button>
+                <button class="defer-btn" data-defer="end-week">End of Week (Friday)</button>
+            </div>
+            <div class="date-picker-option">
+                <label>Or select a date:</label>
+                <input type="date" id="deferDatePicker">
+                <button id="deferCustomDateBtn">Move to Date</button>
+            </div>
+            <button id="closeDeferModal" class="close-modal-btn">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Assign Date Modal (for backlog) -->
+    <div id="assignDateModal" class="modal">
+        <div class="modal-content">
+            <h3>Assign to Date</h3>
+            <input type="date" id="assignDatePicker">
+            <button id="assignDateBtn">Assign</button>
+            <button id="closeAssignModal" class="close-modal-btn">Cancel</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
