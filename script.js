@@ -136,6 +136,33 @@ function generateId() {
 }
 
 /**
+ * Sort tasks by priority (Urgent > Today > Leisure > Improvements) then by time added
+ */
+function sortTasks(tasks) {
+    const priorityOrder = {
+        'urgent': 0,
+        'today': 1,
+        'leisure': 2,
+        'improvements': 3
+    };
+
+    return tasks.sort((a, b) => {
+        // First sort by priority
+        const priorityA = priorityOrder[a.status] !== undefined ? priorityOrder[a.status] : 999;
+        const priorityB = priorityOrder[b.status] !== undefined ? priorityOrder[b.status] : 999;
+
+        if (priorityA !== priorityB) {
+            return priorityA - priorityB;
+        }
+
+        // Then sort by createdAt timestamp (older first)
+        const timeA = a.createdAt || 0;
+        const timeB = b.createdAt || 0;
+        return timeA - timeB;
+    });
+}
+
+/**
  * Format date as YYYY-MM-DD
  */
 function formatDate(date) {
@@ -493,42 +520,43 @@ function createCalendarDay(day, otherMonth, monthOffset) {
 
 function renderDayTasks() {
     if (!selectedDate) return;
-    
+
     const titleElement = document.getElementById('selectedDayTitle');
     const tasksList = document.getElementById('dayTasksList');
-    
+
     // Update title
     const date = parseDate(selectedDate);
-    const dateStr = date.toLocaleDateString('en-US', { 
-        weekday: 'long', 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
+    const dateStr = date.toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
     });
     titleElement.textContent = dateStr;
-    
-    // Get tasks
+
+    // Get tasks and sort them
     let tasks = getTasksForDate(selectedDate, currentContext);
-    
+    sortTasks(tasks);
+
     // Apply filters
     const hideCompleted = document.getElementById('hideCompletedToggle').checked;
     const searchQuery = document.getElementById('taskSearch').value.toLowerCase();
     const statusFilter = document.getElementById('statusFilter').value;
-    
+
     tasks = tasks.filter(task => {
         if (hideCompleted && task.completed) return false;
-        if (searchQuery && !task.title.toLowerCase().includes(searchQuery) && 
+        if (searchQuery && !task.title.toLowerCase().includes(searchQuery) &&
             !task.notes.toLowerCase().includes(searchQuery)) return false;
         if (statusFilter !== 'all' && task.status !== statusFilter) return false;
         return true;
     });
-    
+
     // Render tasks
     if (tasks.length === 0) {
         tasksList.innerHTML = '<div class="empty-state"><p>No tasks for this day</p></div>';
         return;
     }
-    
+
     tasksList.innerHTML = '';
     tasks.forEach((task, index) => {
         const taskElement = createTaskElement(task, index, selectedDate);
@@ -632,27 +660,29 @@ function addTask() {
     const titleInput = document.getElementById('newTaskTitle');
     const notesInput = document.getElementById('newTaskNotes');
     const statusSelect = document.getElementById('newTaskStatus');
-    
+
     const title = titleInput.value.trim();
     if (!title) return;
-    
+
     const task = {
         id: generateId(),
         title: title,
         notes: notesInput.value.trim(),
         status: statusSelect.value,
         completed: false,
-        priority: 0
+        priority: 0,
+        createdAt: Date.now()
     };
-    
+
     const tasks = getTasksForDate(selectedDate, currentContext);
     tasks.push(task);
+    sortTasks(tasks);
     saveTasksForDate(selectedDate, currentContext, tasks);
-    
+
     // Clear inputs
     titleInput.value = '';
     notesInput.value = '';
-    
+
     // Re-render
     renderDayTasks();
     renderCalendar();
@@ -803,8 +833,9 @@ function renderTasksView() {
     });
     titleElement.textContent = dateStr;
 
-    // Get all tasks for this date
+    // Get all tasks for this date and sort them
     const tasks = getTasksForDate(tasksViewDate, currentContext);
+    sortTasks(tasks);
 
     // Separate tasks into sections
     const activeTasks = tasks.filter(t => !t.completed && !t.deferredTo);
@@ -965,11 +996,13 @@ function addTaskFromTasksPage() {
         notes: notesInput.value.trim(),
         status: statusSelect.value,
         completed: false,
-        priority: 0
+        priority: 0,
+        createdAt: Date.now()
     };
 
     const tasks = getTasksForDate(tasksViewDate, currentContext);
     tasks.push(task);
+    sortTasks(tasks);
     saveTasksForDate(tasksViewDate, currentContext, tasks);
 
     // Clear inputs
@@ -1029,6 +1062,7 @@ function renderFocusPanel() {
     const todayStr = formatDate(new Date());
 
     const tasks = getTasksForDate(todayStr, currentContext);
+    sortTasks(tasks);
     const focusTasks = tasks.filter(t =>
         (t.status === 'urgent' || t.status === 'today') && !t.completed && !t.deferredTo
     );
@@ -1233,12 +1267,14 @@ function assignBacklogTaskToDate() {
                 task.status === 'work-reduction' ? 'improvements' :
                 task.status === 'revenue-increase' ? 'improvements' : 'today',
         completed: false,
-        priority: 0
+        priority: 0,
+        createdAt: Date.now()
     };
-    
+
     // Add to target date
     const tasks = getTasksForDate(targetDate, currentContext);
     tasks.push(newTask);
+    sortTasks(tasks);
     saveTasksForDate(targetDate, currentContext, tasks);
     
     // Remove from backlog
@@ -1430,10 +1466,12 @@ function generateRecurringTasks() {
                     notes: '',
                     status: recurringTask.status,
                     completed: false,
-                    priority: 0
+                    priority: 0,
+                    createdAt: Date.now()
                 };
-                
+
                 tasks.push(task);
+                sortTasks(tasks);
                 saveTasksForDate(dateStr, recurringTask.context, tasks);
                 
                 // Mark as generated
@@ -1583,13 +1621,15 @@ function saveMassEntry() {
             notes: notes,
             status: status,
             completed: false,
-            priority: 0
+            priority: 0,
+            createdAt: Date.now()
         };
-        
+
         if (dateStr) {
             // Add to specific date
             const tasks = getTasksForDate(dateStr, context);
             tasks.push(task);
+            sortTasks(tasks);
             saveTasksForDate(dateStr, context, tasks);
         } else {
             // Add to backlog
