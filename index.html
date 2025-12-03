@@ -7,13 +7,10 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <!-- Theme Toggle and User Controls -->
+    <!-- Theme Toggle -->
     <div class="theme-toggle">
         <button id="themeToggleBtn" aria-label="Toggle theme">
             <span class="theme-icon">🌙</span>
-        </button>
-        <button id="logoutBtn" class="logout-btn" aria-label="Logout">
-            <span>Logout</span>
         </button>
     </div>
 
@@ -272,13 +269,6 @@
             <h2>Settings</h2>
 
             <div class="settings-container">
-                <!-- Danger Zone -->
-                <div class="settings-section danger-zone">
-                    <h3>Danger Zone</h3>
-                    <p class="warning-text">Warning: This action will remove all tasks from your calendar but keep recurring tasks (deactivated).</p>
-                    <button id="clearAllTasksBtn" class="danger-btn">Clear All Tasks</button>
-                </div>
-
                 <!-- Manage Statuses -->
                 <div class="settings-section">
                     <h3>Manage Task Statuses</h3>
@@ -343,8 +333,6 @@
         </div>
     </div>
 
-    <script src="config.js"></script>
-    <script src="api.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
