@@ -3,9 +3,11 @@
  * API UTILITY MODULE
  * ============================================
  * Handles all communication with the backend API
+ *
+ * Note: Requires config.js to be loaded first for API_URL
  */
 
-const API_BASE_URL = window.location.origin + '/api';
+const API_BASE_URL = API_URL;
 
 /**
  * Get auth token from localStorage
