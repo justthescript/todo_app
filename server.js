@@ -256,15 +256,15 @@ app.post('/api/tasks', authenticateToken, async (req, res) => {
 });
 
 // Update task
-app.put('/api/tasks/:id', authenticateToken, (req, res) => {
+app.put('/api/tasks/:id', authenticateToken, async (req, res) => {
   try {
     const { date, context, title, notes, status, completed, priority } = req.body;
 
-    db.prepare(`
+    await db.prepare(`
       UPDATE tasks
       SET date = ?, context = ?, title = ?, notes = ?, status = ?, completed = ?, priority = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ? AND user_id = ?
-    `).run(date, context, title, notes || '', status, completed ? 1 : 0, priority || '', req.params.id, req.userId);
+    `).run(date, context, title, notes || '', status, completed || false, priority || '', req.params.id, req.userId);
 
     res.json({ message: 'Task updated' });
   } catch (error) {
@@ -400,15 +400,15 @@ app.post('/api/recurring-tasks', authenticateToken, async (req, res) => {
 });
 
 // Update recurring task
-app.put('/api/recurring-tasks/:id', authenticateToken, (req, res) => {
+app.put('/api/recurring-tasks/:id', authenticateToken, async (req, res) => {
   try {
     const { title, context, status, frequency, active, generatedDates } = req.body;
 
-    db.prepare(`
+    await db.prepare(`
       UPDATE recurring_tasks
       SET title = ?, context = ?, status = ?, frequency = ?, active = ?, generated_dates = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ? AND user_id = ?
-    `).run(title, context, status, frequency, active ? 1 : 0, JSON.stringify(generatedDates || []), req.params.id, req.userId);
+    `).run(title, context, status, frequency, active !== false, JSON.stringify(generatedDates || []), req.params.id, req.userId);
 
     res.json({ message: 'Recurring task updated' });
   } catch (error) {
