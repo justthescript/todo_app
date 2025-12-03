@@ -522,6 +522,31 @@ body {
     font-size: 1.5rem;
 }
 
+/* Drag-drop instructions */
+.drag-drop-instructions {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+    border: 2px solid var(--school-color);
+    border-radius: 12px;
+    padding: 15px 20px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.instruction-icon {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.instruction-text {
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    font-weight: 500;
+    line-height: 1.4;
+}
+
 .week-blocks {
     display: flex;
     flex-direction: column;
@@ -536,6 +561,7 @@ body {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
     cursor: pointer;
+    position: relative;
 }
 
 .week-block:hover {
@@ -547,6 +573,31 @@ body {
     background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
     border-left-color: #667eea;
     border-left-width: 6px;
+}
+
+/* Drag and drop states */
+.week-block.drag-over {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%);
+    border: 3px dashed var(--school-color);
+    transform: scale(1.02);
+    box-shadow: 0 8px 24px var(--shadow-lg);
+}
+
+.week-block.drag-over::after {
+    content: 'Drop module here';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--school-color);
+    color: white;
+    padding: 12px 24px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 1.1rem;
+    box-shadow: 0 4px 12px var(--shadow);
+    pointer-events: none;
+    z-index: 10;
 }
 
 .week-block-header {
@@ -568,10 +619,59 @@ body {
     font-weight: 500;
 }
 
+/* Week modules section */
+.week-modules-section {
+    margin: 15px 0;
+    padding: 15px;
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    border: 2px solid var(--school-color);
+}
+
+.week-modules-header {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--school-color);
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.week-module-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 8px 14px;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+    border: 1px solid var(--school-color);
+    border-radius: 20px;
+    margin-right: 8px;
+    margin-bottom: 8px;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+}
+
+.week-module-chip:hover {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%);
+    transform: translateY(-1px);
+}
+
+.module-chip-name {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.module-chip-class {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
 .week-block-stats {
     display: flex;
     gap: 15px;
     margin-bottom: 10px;
+    flex-wrap: wrap;
 }
 
 .week-stat {
@@ -620,6 +720,13 @@ body {
 
     .week-block-stats {
         flex-wrap: wrap;
+    }
+
+    .week-module-chip {
+        margin-right: 4px;
+        margin-bottom: 6px;
+        font-size: 0.85rem;
+        padding: 6px 10px;
     }
 }
 
@@ -1637,6 +1744,8 @@ body {
     align-items: center;
     border-left: 4px solid var(--school-color);
     transition: all 0.3s ease;
+    gap: 12px;
+    cursor: move;
 }
 
 .module-item:hover {
@@ -1644,10 +1753,36 @@ body {
     box-shadow: 0 4px 12px var(--shadow);
 }
 
+.module-item.dragging {
+    opacity: 0.5;
+    transform: scale(0.95);
+    box-shadow: 0 8px 24px var(--shadow-lg);
+}
+
+/* Drag handle */
+.drag-handle {
+    font-size: 1.2rem;
+    color: var(--text-secondary);
+    cursor: grab;
+    user-select: none;
+    padding: 4px;
+    transition: all 0.3s ease;
+}
+
+.drag-handle:hover {
+    color: var(--school-color);
+    transform: scale(1.1);
+}
+
+.drag-handle:active {
+    cursor: grabbing;
+}
+
 .module-info {
     display: flex;
     align-items: center;
     gap: 15px;
+    flex: 1;
 }
 
 .module-name {
@@ -1662,6 +1797,16 @@ body {
     border-radius: 12px;
     font-size: 0.85rem;
     font-weight: 600;
+}
+
+.module-unassigned {
+    padding: 4px 12px;
+    background: var(--text-secondary);
+    color: white;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    opacity: 0.7;
 }
 
 .module-actions {
@@ -1762,16 +1907,39 @@ body {
     }
 
     .module-item {
-        flex-direction: column;
-        align-items: flex-start;
+        flex-direction: row;
+        flex-wrap: wrap;
         gap: 10px;
+    }
+
+    .module-info {
+        flex: 1 1 100%;
+        order: 2;
+    }
+
+    .drag-handle {
+        order: 1;
     }
 
     .module-actions {
         width: 100%;
+        order: 3;
     }
 
     .module-actions button {
         flex: 1;
+    }
+
+    .drag-drop-instructions {
+        padding: 12px 15px;
+        font-size: 0.9rem;
+    }
+
+    .instruction-icon {
+        font-size: 1.2rem;
+    }
+
+    .instruction-text {
+        font-size: 0.85rem;
     }
 }
