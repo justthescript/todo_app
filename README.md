@@ -1,223 +1,152 @@
-# Context Task Manager
+# Todo App - Desktop Edition
 
-A comprehensive, responsive to-do web application with context-based task management, calendar views, recurring tasks, and backlog support. Built with vanilla HTML, CSS, and JavaScript, designed to be hosted on GitHub Pages.
+A local desktop task manager with context-based organization, calendar views, and recurring tasks. All data is stored locally on your computer.
 
 ## Features
 
-### 🎯 Core Features
+- **Four Contexts**: Work, Rescue, Personal, and School
+- **Calendar Dashboard**: Month view with task indicators
+- **Daily Tasks**: Create, manage, and complete tasks for specific dates
+- **Backlog System**: Track unscheduled tasks
+- **Recurring Tasks**: Auto-generate tasks on schedules
+- **Mass Entry**: Quick multi-task creation
+- **Classes & Modules**: Track academic work (School context)
+- **Dark/Light Theme**: Toggle in Settings
+- **100% Local**: All data stored in your computer's localStorage
 
-- **Three Context System**: Organize tasks across Work, Rescue, and Personal contexts
-- **Calendar Dashboard**: Month view calendar with task indicators and easy day selection
-- **Daily Task Management**: Create, edit, prioritize, and manage tasks for specific dates
-- **Backlog System**: Maintain a separate backlog of unscheduled tasks
-- **Recurring Tasks**: Define tasks that automatically generate on specific schedules
-- **Mass Entry**: Quick entry interface for adding multiple tasks at once
-- **Focus Mode**: See today's urgent and priority tasks at a glance
+## Installation
 
-### 📋 Task Features
+### Option 1: Run Development Version
 
-- Task status options: Urgent, Today, Leisure, Improvements
-- Optional notes/descriptions for each task
-- Completion tracking with visual feedback
-- Priority controls (move tasks up/down)
-- Defer functionality with quick options:
-  - Tomorrow
-  - Next week (Monday)
-  - End of week (Friday)
-  - Custom date selection
-- Overdue task indicators
+1. Install Node.js from https://nodejs.org (if not installed)
+2. Open terminal/command prompt in this folder
+3. Run:
+   ```bash
+   npm install
+   npm start
+   ```
 
-### 🔍 Organization Tools
+### Option 2: Build Standalone App
 
-- Search tasks by text
-- Filter by status
-- Hide completed tasks toggle
-- Backlog assignment to specific dates
-- Task statistics for each context
+1. Install dependencies:
+   ```bash
+   npm install
+   ```
 
-### 🔄 Recurring Tasks
+2. Build for your platform:
 
-Support for multiple frequency patterns:
-- Daily (Monday-Friday)
-- Every day
-- Weekly on specific days
-- Monthly on specific dates (1st, 15th, last day)
-- Monthly on specific weekdays (1st Monday, 1st Friday, etc.)
+   **Windows:**
+   ```bash
+   npm run build:win
+   ```
 
-### 🎨 User Experience
+   **macOS:**
+   ```bash
+   npm run build:mac
+   ```
 
-- Clean, modern interface
-- Light and dark theme support
-- Responsive mobile-friendly design
-- Visual indicators on calendar:
-  - Tasks present on a day
-  - Urgent tasks indicator
-  - Today highlight
-  - Selected day highlight
-- Keyboard accessibility (Enter to submit)
+   **Linux:**
+   ```bash
+   npm run build:linux
+   ```
 
-## Getting Started
+3. Find the installer in the `dist/` folder
+4. Install and run!
 
-### Local Usage
+## Usage
 
-1. Download all files to a folder:
-   - `index.html`
-   - `styles.css`
-   - `script.js`
+### Context Switching
+Click the context buttons (Work, Rescue, Personal, School) to switch between different task lists.
 
-2. Open `index.html` in your web browser
+### Adding Tasks
+1. Click a date on the calendar or go to Tasks view
+2. Enter task title, notes (optional), and status
+3. Click "Add Task"
 
-3. Start adding tasks!
+### Recurring Tasks
+1. Go to Recurring Tasks view
+2. Enter task details and select frequency:
+   - Daily (Mon-Fri)
+   - Every Day
+   - Weekly
+   - Monthly
+3. Tasks auto-generate on matching dates
 
-### GitHub Pages Deployment
-
-1. Create a new repository on GitHub
-
-2. Upload the three files to your repository
-
-3. Go to Settings > Pages
-
-4. Under "Source", select the branch (usually `main` or `master`)
-
-5. Click "Save"
-
-6. Your app will be available at: `https://yourusername.github.io/repository-name/`
-
-## How to Use
-
-### Switching Contexts
-
-Use the context buttons at the top (Work, Rescue, Personal) to switch between different task contexts. All views respect the currently selected context.
-
-### Managing Daily Tasks
-
-1. **View Tasks**: Click any day on the calendar to see tasks for that day
-2. **Add Task**: Fill in the title, optional notes, select a status, and click "Add Task"
-3. **Complete Task**: Check the checkbox next to a task
-4. **Defer Task**: Click "Defer" and choose a new date
-5. **Delete Task**: Click "Delete" to remove a task
-6. **Prioritize**: Use ↑↓ buttons to reorder tasks
-
-### Using the Backlog
-
-1. Navigate to the "Backlog" view
-2. Add tasks without specific dates
-3. Use "Assign to Date" to schedule backlog items
-4. Backlog tasks use different status options:
-   - Improvements
-   - Work Quality
-   - Work Reduction
-   - Revenue Increase
-
-### Setting Up Recurring Tasks
-
-1. Navigate to "Recurring Tasks"
-2. Enter a task title and select status
-3. Choose a frequency pattern
-4. Click "Add Recurring Task"
-5. Tasks will automatically generate on matching dates
-6. Toggle tasks active/inactive as needed
-
-### Mass Entry
-
-1. Navigate to "Mass Entry"
-2. Fill in the table rows with task information
-3. Optionally specify a start date (leave blank for backlog)
-4. Click "Save All" to create all tasks at once
-
-### Search and Filters
-
-- Use the search box to find tasks by text
-- Use the status filter to show specific types of tasks
-- Toggle "Hide completed" to focus on active tasks
+### Classes (School Context)
+1. Go to Classes view
+2. Create classes with colors
+3. Add modules with week assignments
+4. Track completion status
 
 ## Data Storage
 
-All data is stored locally in your browser's localStorage:
+All data is stored in your browser's localStorage:
+- Tasks organized by date and context
+- Backlog tasks by context
+- Recurring task definitions
+- Class and module information
+- Custom statuses and categories
+- User settings (theme, etc.)
 
-- **Tasks**: Organized by date and context
-- **Backlog**: Organized by context
-- **Recurring Tasks**: Definitions and generation tracking
-- **Settings**: Theme preference
+### Backing Up Data
 
-### Clearing Data
+To backup your data:
+1. Open the app
+2. Press `F12` to open Developer Tools
+3. Go to Console tab
+4. Run:
+   ```javascript
+   JSON.stringify(localStorage)
+   ```
+5. Copy the output and save to a file
 
-To start fresh, open your browser's developer console (F12) and run:
+### Restoring Data
 
-```javascript
-localStorage.clear();
-```
+To restore data:
+1. Open the app
+2. Press `F12` to open Developer Tools
+3. Go to Console tab
+4. Run (replace with your backed up data):
+   ```javascript
+   Object.assign(localStorage, JSON.parse('your-backup-data-here'))
+   ```
+5. Refresh the app
 
-Then refresh the page.
+## Clearing Data
 
-## Browser Compatibility
+To start fresh:
+1. Open Settings
+2. Look for "Clear All Data" option
+OR
+1. Press `F12` → Console
+2. Run: `localStorage.clear()`
+3. Refresh
 
-Works best in modern browsers:
-- Chrome/Edge (version 90+)
-- Firefox (version 88+)
-- Safari (version 14+)
+## System Requirements
 
-## Tips and Tricks
-
-1. **Stay Organized**: Use contexts to separate work and personal life
-2. **Morning Routine**: Check the Focus panel each morning for urgent tasks
-3. **Weekly Planning**: Use the calendar view to plan your week ahead
-4. **Backlog Management**: Review your backlog regularly and assign tasks to specific dates
-5. **Recurring Tasks**: Set up recurring tasks for habits and regular responsibilities
-6. **Theme Switching**: Click the moon/sun icon to toggle between light and dark mode
-
-## Keyboard Shortcuts
-
-- **Enter** in task title field: Add task
-- **Tab** to navigate between fields
+- Windows 10/11, macOS 10.13+, or Linux
+- 100MB disk space
+- 512MB RAM
 
 ## Troubleshooting
 
-**Tasks not appearing?**
-- Make sure you're in the correct context (Work/Rescue/Personal)
-- Check that the correct date is selected
-- Verify filters aren't hiding your tasks
+**App won't start:**
+- Make sure Node.js is installed
+- Try `npm install` again
 
-**Recurring tasks not generating?**
-- Make sure the task is set to "Active"
-- Tasks generate for the current month and 2 months ahead
-- Refresh the page to trigger generation
+**Data disappeared:**
+- Check if you cleared browser cache
+- Data is stored locally - each user profile has its own data
 
-**Lost data after closing browser?**
-- Check that your browser allows localStorage
-- Some private/incognito modes may not persist data
-- Try a different browser
-
-## Technical Details
-
-- **Framework**: None (Vanilla JavaScript)
-- **Storage**: localStorage API
-- **Styling**: Custom CSS with CSS Variables
-- **Responsive**: Mobile-first design with flexbox and grid
-- **File Size**: ~45KB total (uncompressed)
-
-## Future Enhancement Ideas
-
-- Export/import data as JSON
-- Task categories and tags
-- Subtasks and checklists
-- Time tracking
-- Task templates
-- Collaboration features
-- Cloud sync
-- Notifications/reminders
+**Build failed:**
+- Make sure you have internet connection (downloads dependencies)
+- Try deleting `node_modules` and running `npm install` again
 
 ## License
 
-Free to use and modify for personal and commercial projects.
-
-## Credits
-
-Built as a comprehensive task management solution for organizing life across multiple contexts.
+MIT - Free to use and modify
 
 ---
 
-**Version**: 1.0.0  
+**Version**: 1.0.0
 **Last Updated**: December 2024
-
-Enjoy staying organized! 🎯

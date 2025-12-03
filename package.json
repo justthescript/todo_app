@@ -1,26 +1,45 @@
 {
-  "name": "todo-app-backend",
+  "name": "todo-app-desktop",
   "version": "1.0.0",
-  "description": "Backend server for Todo App with authentication",
-  "main": "server.js",
+  "description": "Local desktop todo app with context-based task management",
+  "main": "main.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js"
+    "start": "electron .",
+    "build": "electron-builder",
+    "build:win": "electron-builder --win",
+    "build:mac": "electron-builder --mac",
+    "build:linux": "electron-builder --linux"
   },
-  "keywords": ["todo", "task-management", "authentication"],
+  "keywords": ["todo", "task-management", "productivity", "electron"],
   "author": "",
   "license": "MIT",
-  "dependencies": {
-    "express": "^4.18.2",
-    "cors": "^2.8.5",
-    "bcryptjs": "^2.4.3",
-    "jsonwebtoken": "^9.0.2",
-    "pg": "^8.11.3",
-    "nodemailer": "^6.9.7",
-    "dotenv": "^16.3.1",
-    "express-validator": "^7.0.1"
-  },
   "devDependencies": {
-    "nodemon": "^3.0.2"
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1"
+  },
+  "build": {
+    "appId": "com.todoapp.desktop",
+    "productName": "Todo App",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "index.html",
+      "styles.css",
+      "script.js",
+      "main.js"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "icon.png"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "icon.png"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "icon.png"
+    }
   }
 }
