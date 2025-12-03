@@ -107,7 +107,7 @@ app.post('/api/auth/login', [
 
   try {
     // Find user
-    const user = db.prepare('SELECT id, email, password FROM users WHERE email = ?').get(email);
+    const user = await db.prepare('SELECT id, email, password FROM users WHERE email = ?').get(email);
     if (!user) {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
