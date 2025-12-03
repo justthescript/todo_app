@@ -217,9 +217,9 @@ app.post('/api/auth/reset-password', [
 // ==================== TASKS ROUTES ====================
 
 // Get all tasks for user
-app.get('/api/tasks', authenticateToken, (req, res) => {
+app.get('/api/tasks', authenticateToken, async (req, res) => {
   try {
-    const tasks = db.prepare('SELECT * FROM tasks WHERE user_id = ? ORDER BY date, created_at').all(req.userId);
+    const tasks = await db.prepare('SELECT * FROM tasks WHERE user_id = ? ORDER BY date, created_at').all(req.userId);
 
     // Group tasks by date and context
     const groupedTasks = {};
@@ -239,14 +239,14 @@ app.get('/api/tasks', authenticateToken, (req, res) => {
 });
 
 // Add task
-app.post('/api/tasks', authenticateToken, (req, res) => {
+app.post('/api/tasks', authenticateToken, async (req, res) => {
   try {
     const { id, date, context, title, notes, status, completed, priority } = req.body;
 
-    db.prepare(`
+    await db.prepare(`
       INSERT INTO tasks (id, user_id, date, context, title, notes, status, completed, priority)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(id, req.userId, date, context, title, notes || '', status || 'To Do', completed ? 1 : 0, priority || '');
+    `).run(id, req.userId, date, context, title, notes || '', status || 'To Do', completed || false, priority || '');
 
     res.status(201).json({ message: 'Task created' });
   } catch (error) {
@@ -299,9 +299,9 @@ app.delete('/api/tasks/all/clear', authenticateToken, (req, res) => {
 // ==================== BACKLOG ROUTES ====================
 
 // Get backlog
-app.get('/api/backlog', authenticateToken, (req, res) => {
+app.get('/api/backlog', authenticateToken, async (req, res) => {
   try {
-    const tasks = db.prepare('SELECT * FROM backlog_tasks WHERE user_id = ? ORDER BY created_at').all(req.userId);
+    const tasks = await db.prepare('SELECT * FROM backlog_tasks WHERE user_id = ? ORDER BY created_at').all(req.userId);
 
     const backlog = { work: [], rescue: [], personal: [], school: [] };
     tasks.forEach(task => {
@@ -365,9 +365,9 @@ app.delete('/api/backlog/:id', authenticateToken, (req, res) => {
 // ==================== RECURRING TASKS ROUTES ====================
 
 // Get recurring tasks
-app.get('/api/recurring-tasks', authenticateToken, (req, res) => {
+app.get('/api/recurring-tasks', authenticateToken, async (req, res) => {
   try {
-    const tasks = db.prepare('SELECT * FROM recurring_tasks WHERE user_id = ? ORDER BY created_at').all(req.userId);
+    const tasks = await db.prepare('SELECT * FROM recurring_tasks WHERE user_id = ? ORDER BY created_at').all(req.userId);
 
     tasks.forEach(task => {
       task.active = Boolean(task.active);
@@ -443,13 +443,13 @@ app.delete('/api/recurring-tasks/:id', authenticateToken, (req, res) => {
 // ==================== SETTINGS ROUTES ====================
 
 // Get user settings
-app.get('/api/settings', authenticateToken, (req, res) => {
+app.get('/api/settings', authenticateToken, async (req, res) => {
   try {
-    const settings = db.prepare('SELECT * FROM user_settings WHERE user_id = ?').get(req.userId);
+    const settings = await db.prepare('SELECT * FROM user_settings WHERE user_id = ?').get(req.userId);
 
     if (!settings) {
       // Create default settings if not exists
-      db.prepare('INSERT INTO user_settings (user_id) VALUES (?)').run(req.userId);
+      await db.prepare('INSERT INTO user_settings (user_id) VALUES (?)').run(req.userId);
       return res.json({ theme: 'light', settings: {} });
     }
 
@@ -484,9 +484,9 @@ app.put('/api/settings', authenticateToken, (req, res) => {
 // ==================== CUSTOM STATUSES ROUTES ====================
 
 // Get custom statuses
-app.get('/api/custom-statuses', authenticateToken, (req, res) => {
+app.get('/api/custom-statuses', authenticateToken, async (req, res) => {
   try {
-    const statuses = db.prepare('SELECT * FROM custom_statuses WHERE user_id = ? ORDER BY id').all(req.userId);
+    const statuses = await db.prepare('SELECT * FROM custom_statuses WHERE user_id = ? ORDER BY id').all(req.userId);
     res.json(statuses);
   } catch (error) {
     console.error('Get custom statuses error:', error);
@@ -495,11 +495,11 @@ app.get('/api/custom-statuses', authenticateToken, (req, res) => {
 });
 
 // Add custom status
-app.post('/api/custom-statuses', authenticateToken, (req, res) => {
+app.post('/api/custom-statuses', authenticateToken, async (req, res) => {
   try {
     const { status, color } = req.body;
 
-    const result = db.prepare('INSERT INTO custom_statuses (user_id, status, color) VALUES (?, ?, ?)').run(req.userId, status, color);
+    const result = await db.prepare('INSERT INTO custom_statuses (user_id, status, color) VALUES (?, ?, ?) RETURNING id').run(req.userId, status, color);
 
     res.status(201).json({ id: result.lastInsertRowid, status, color });
   } catch (error) {
@@ -522,9 +522,9 @@ app.delete('/api/custom-statuses/:id', authenticateToken, (req, res) => {
 // ==================== CUSTOM CATEGORIES ROUTES ====================
 
 // Get custom categories
-app.get('/api/custom-categories', authenticateToken, (req, res) => {
+app.get('/api/custom-categories', authenticateToken, async (req, res) => {
   try {
-    const categories = db.prepare('SELECT * FROM custom_categories WHERE user_id = ? ORDER BY id').all(req.userId);
+    const categories = await db.prepare('SELECT * FROM custom_categories WHERE user_id = ? ORDER BY id').all(req.userId);
     res.json(categories);
   } catch (error) {
     console.error('Get custom categories error:', error);
@@ -560,9 +560,9 @@ app.delete('/api/custom-categories/:id', authenticateToken, (req, res) => {
 // ==================== CLASSES ROUTES ====================
 
 // Get all classes
-app.get('/api/classes', authenticateToken, (req, res) => {
+app.get('/api/classes', authenticateToken, async (req, res) => {
   try {
-    const classes = db.prepare('SELECT * FROM classes WHERE user_id = ? ORDER BY created_at').all(req.userId);
+    const classes = await db.prepare('SELECT * FROM classes WHERE user_id = ? ORDER BY created_at').all(req.userId);
     res.json(classes);
   } catch (error) {
     console.error('Get classes error:', error);
@@ -612,9 +612,9 @@ app.delete('/api/classes/:id', authenticateToken, (req, res) => {
 // ==================== CLASS MODULES ROUTES ====================
 
 // Get all modules
-app.get('/api/modules', authenticateToken, (req, res) => {
+app.get('/api/modules', authenticateToken, async (req, res) => {
   try {
-    const modules = db.prepare('SELECT * FROM class_modules WHERE user_id = ? ORDER BY class_id, module_number').all(req.userId);
+    const modules = await db.prepare('SELECT * FROM class_modules WHERE user_id = ? ORDER BY class_id, module_number').all(req.userId);
 
     modules.forEach(module => {
       module.completed = Boolean(module.completed);
