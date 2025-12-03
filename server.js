@@ -52,12 +52,15 @@ app.post('/api/auth/register', [
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create user
-    const result = db.prepare('INSERT INTO users (email, password) VALUES (?, ?)').run(email, hashedPassword);
-    const userId = result.lastInsertRowid;
+    // Create user and initialize settings in a transaction
+    const createUser = db.transaction(() => {
+      const result = db.prepare('INSERT INTO users (email, password) VALUES (?, ?)').run(email, hashedPassword);
+      const userId = result.lastInsertRowid;
+      db.prepare('INSERT INTO user_settings (user_id) VALUES (?)').run(userId);
+      return userId;
+    });
 
-    // Initialize user settings
-    db.prepare('INSERT INTO user_settings (user_id) VALUES (?)').run(userId);
+    const userId = createUser();
 
     // Generate JWT token
     const token = jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '30d' });
