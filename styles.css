@@ -1354,19 +1354,424 @@ body {
     .app-header h1 {
         font-size: 1.5rem;
     }
-    
+
     .calendar-header h2 {
         font-size: 1.2rem;
     }
-    
+
     .theme-toggle {
         top: 10px;
         right: 10px;
     }
-    
+
     .theme-toggle button {
         width: 40px;
         height: 40px;
         font-size: 1.2rem;
+    }
+}
+
+/* ============================================
+   SETTINGS PAGE
+   ============================================ */
+
+#settingsView h2,
+#classesView h2 {
+    background: var(--bg-secondary);
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px var(--shadow);
+}
+
+.settings-container {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.settings-section {
+    background: var(--bg-secondary);
+    padding: 25px;
+    border-radius: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 10px 30px var(--shadow-lg);
+}
+
+.settings-section h3 {
+    font-size: 1.3rem;
+    margin-bottom: 15px;
+    color: var(--text-primary);
+}
+
+.add-item-form {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.add-item-form input[type="text"],
+.add-item-form input[type="color"] {
+    flex: 1;
+    min-width: 150px;
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    font-size: 0.95rem;
+}
+
+.add-item-form input[type="color"] {
+    flex: 0 0 80px;
+    height: 42px;
+    cursor: pointer;
+}
+
+.add-item-form button {
+    padding: 10px 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.add-item-form button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px var(--shadow-lg);
+}
+
+.settings-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.settings-list-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background: var(--bg-tertiary);
+    border-radius: 12px;
+    border-left: 4px solid var(--accent-primary);
+    transition: all 0.3s ease;
+}
+
+.settings-list-item:hover {
+    transform: translateX(5px);
+    box-shadow: 0 4px 12px var(--shadow);
+}
+
+.settings-item-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+}
+
+.settings-color-preview {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 2px solid var(--border-color);
+}
+
+.delete-settings-btn {
+    padding: 8px 16px;
+    background: var(--urgent-color);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.delete-settings-btn:hover {
+    opacity: 0.8;
+    transform: translateY(-1px);
+}
+
+/* ============================================
+   CLASSES PAGE
+   ============================================ */
+
+.classes-container {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.add-class-form {
+    background: var(--bg-secondary);
+    padding: 25px;
+    border-radius: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 10px 30px var(--shadow-lg);
+}
+
+.add-class-form h3 {
+    font-size: 1.3rem;
+    margin-bottom: 15px;
+}
+
+.add-class-form input {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    font-size: 0.95rem;
+}
+
+.add-class-form button {
+    width: 100%;
+    padding: 12px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.add-class-form button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px var(--shadow-lg);
+}
+
+.classes-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.class-item {
+    background: var(--bg-secondary);
+    padding: 25px;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px var(--shadow-lg);
+    border-left: 5px solid var(--school-color);
+}
+
+.class-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.class-header h3 {
+    font-size: 1.5rem;
+    color: var(--text-primary);
+}
+
+.delete-class-btn {
+    padding: 8px 16px;
+    background: var(--urgent-color);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.delete-class-btn:hover {
+    opacity: 0.8;
+}
+
+.add-module-form {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.add-module-form input {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    font-size: 0.95rem;
+}
+
+.add-module-btn {
+    padding: 10px 20px;
+    background: var(--school-color);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.add-module-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px var(--shadow);
+}
+
+.modules-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.module-item {
+    background: var(--bg-tertiary);
+    padding: 15px;
+    border-radius: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-left: 4px solid var(--school-color);
+    transition: all 0.3s ease;
+}
+
+.module-item:hover {
+    transform: translateX(5px);
+    box-shadow: 0 4px 12px var(--shadow);
+}
+
+.module-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.module-name {
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.module-week {
+    padding: 4px 12px;
+    background: var(--school-color);
+    color: white;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.module-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.module-actions button {
+    padding: 8px 16px;
+    border: none;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.module-actions button:hover {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    transform: translateY(-1px);
+}
+
+.empty-modules {
+    text-align: center;
+    color: var(--text-secondary);
+    padding: 20px;
+    font-style: italic;
+}
+
+/* ============================================
+   BACKLOG CLASS SECTIONS
+   ============================================ */
+
+.backlog-class-section {
+    margin-bottom: 30px;
+}
+
+.backlog-class-header {
+    font-size: 1.4rem;
+    color: var(--text-primary);
+    margin-bottom: 15px;
+    padding: 15px;
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    border-left: 5px solid var(--school-color);
+    box-shadow: 0 2px 8px var(--shadow);
+}
+
+.backlog-modules-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.module-item-backlog {
+    border-left-color: var(--school-color);
+}
+
+.module-badge {
+    background: var(--school-color);
+    color: white;
+}
+
+/* Week Selector Modal */
+#weekSelector {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    margin-bottom: 15px;
+    font-size: 0.95rem;
+}
+
+/* ============================================
+   RESPONSIVE UPDATES
+   ============================================ */
+
+@media (max-width: 768px) {
+    .add-item-form {
+        flex-direction: column;
+    }
+
+    .add-item-form input[type="color"] {
+        flex: 1;
+        width: 100%;
+    }
+
+    .class-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .module-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .module-actions {
+        width: 100%;
+    }
+
+    .module-actions button {
+        flex: 1;
     }
 }
