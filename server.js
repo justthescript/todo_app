@@ -256,15 +256,15 @@ app.post('/api/tasks', authenticateToken, async (req, res) => {
 });
 
 // Update task
-app.put('/api/tasks/:id', authenticateToken, (req, res) => {
+app.put('/api/tasks/:id', authenticateToken, async (req, res) => {
   try {
     const { date, context, title, notes, status, completed, priority } = req.body;
 
-    db.prepare(`
+    await db.prepare(`
       UPDATE tasks
       SET date = ?, context = ?, title = ?, notes = ?, status = ?, completed = ?, priority = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ? AND user_id = ?
-    `).run(date, context, title, notes || '', status, completed ? 1 : 0, priority || '', req.params.id, req.userId);
+    `).run(date, context, title, notes || '', status, completed || false, priority || '', req.params.id, req.userId);
 
     res.json({ message: 'Task updated' });
   } catch (error) {
@@ -317,14 +317,14 @@ app.get('/api/backlog', authenticateToken, async (req, res) => {
 });
 
 // Add backlog task
-app.post('/api/backlog', authenticateToken, (req, res) => {
+app.post('/api/backlog', authenticateToken, async (req, res) => {
   try {
     const { id, context, title, notes, status, completed, priority } = req.body;
 
-    db.prepare(`
+    await db.prepare(`
       INSERT INTO backlog_tasks (id, user_id, context, title, notes, status, completed, priority)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(id, req.userId, context, title, notes || '', status || 'To Do', completed ? 1 : 0, priority || '');
+    `).run(id, req.userId, context, title, notes || '', status || 'To Do', completed || false, priority || '');
 
     res.status(201).json({ message: 'Backlog task created' });
   } catch (error) {
@@ -383,14 +383,14 @@ app.get('/api/recurring-tasks', authenticateToken, async (req, res) => {
 });
 
 // Add recurring task
-app.post('/api/recurring-tasks', authenticateToken, (req, res) => {
+app.post('/api/recurring-tasks', authenticateToken, async (req, res) => {
   try {
     const { id, title, context, status, frequency, active } = req.body;
 
-    db.prepare(`
+    await db.prepare(`
       INSERT INTO recurring_tasks (id, user_id, title, context, status, frequency, active)
       VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(id, req.userId, title, context, status || 'To Do', frequency, active ? 1 : 0);
+    `).run(id, req.userId, title, context, status || 'To Do', frequency, active !== false);
 
     res.status(201).json({ message: 'Recurring task created' });
   } catch (error) {
@@ -400,15 +400,15 @@ app.post('/api/recurring-tasks', authenticateToken, (req, res) => {
 });
 
 // Update recurring task
-app.put('/api/recurring-tasks/:id', authenticateToken, (req, res) => {
+app.put('/api/recurring-tasks/:id', authenticateToken, async (req, res) => {
   try {
     const { title, context, status, frequency, active, generatedDates } = req.body;
 
-    db.prepare(`
+    await db.prepare(`
       UPDATE recurring_tasks
       SET title = ?, context = ?, status = ?, frequency = ?, active = ?, generated_dates = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ? AND user_id = ?
-    `).run(title, context, status, frequency, active ? 1 : 0, JSON.stringify(generatedDates || []), req.params.id, req.userId);
+    `).run(title, context, status, frequency, active !== false, JSON.stringify(generatedDates || []), req.params.id, req.userId);
 
     res.json({ message: 'Recurring task updated' });
   } catch (error) {
@@ -533,11 +533,11 @@ app.get('/api/custom-categories', authenticateToken, async (req, res) => {
 });
 
 // Add custom category
-app.post('/api/custom-categories', authenticateToken, (req, res) => {
+app.post('/api/custom-categories', authenticateToken, async (req, res) => {
   try {
     const { category } = req.body;
 
-    const result = db.prepare('INSERT INTO custom_categories (user_id, category) VALUES (?, ?)').run(req.userId, category);
+    const result = await db.prepare('INSERT INTO custom_categories (user_id, category) VALUES (?, ?) RETURNING id').run(req.userId, category);
 
     res.status(201).json({ id: result.lastInsertRowid, category });
   } catch (error) {
