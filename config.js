@@ -4,13 +4,12 @@
 const CONFIG = {
   // Development: Running locally
   development: {
-    API_URL: 'https://todo-app-backend-sa96.onrender.com'
+    API_URL: 'http://localhost:3000/api'
   },
 
   // Production: Frontend on GitHub Pages, Backend on Render
   production: {
-    // Replace this with your actual Render backend URL after deployment
-    API_URL: 'https://your-app-name.onrender.com/api'
+    API_URL: 'https://todo-app-backend-sa96.onrender.com/api'
   }
 };
 
