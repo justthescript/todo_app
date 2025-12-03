@@ -6,7 +6,8 @@ const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
-const db = require('./database');
+const { initializeDatabase } = require('./database');
+const db = require('./db-helpers');
 const { authenticateToken } = require('./middleware/auth');
 
 const app = express();
@@ -50,7 +51,7 @@ app.post('/api/auth/register', [
 
   try {
     // Check if user exists
-    const existingUser = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
+    const existingUser = await db.prepare('SELECT id FROM users WHERE email = ?').get(email);
     if (existingUser) {
       return res.status(400).json({ error: 'Email already registered' });
     }
@@ -59,19 +60,33 @@ app.post('/api/auth/register', [
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Create user and initialize settings in a transaction
-    const createUser = db.transaction(() => {
-      const result = db.prepare('INSERT INTO users (email, password) VALUES (?, ?)').run(email, hashedPassword);
-      const userId = result.lastInsertRowid;
-      db.prepare('INSERT INTO user_settings (user_id) VALUES (?)').run(userId);
-      return userId;
-    });
+    const client = await db.pool.connect();
+    try {
+      await client.query('BEGIN');
 
-    const userId = createUser();
+      const userResult = await client.query(
+        'INSERT INTO users (email, password) VALUES ($1, $2) RETURNING id',
+        [email, hashedPassword]
+      );
+      const userId = userResult.rows[0].id;
 
-    // Generate JWT token
-    const token = jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '30d' });
+      await client.query(
+        'INSERT INTO user_settings (user_id) VALUES ($1)',
+        [userId]
+      );
 
-    res.status(201).json({ token, userId, email });
+      await client.query('COMMIT');
+
+      // Generate JWT token
+      const token = jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '30d' });
+
+      res.status(201).json({ token, userId, email });
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
   } catch (error) {
     console.error('Registration error:', error);
     res.status(500).json({ error: 'Server error during registration' });
@@ -660,8 +675,21 @@ app.delete('/api/modules/:id', authenticateToken, (req, res) => {
 
 // ==================== SERVER START ====================
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`Frontend: http://localhost:${PORT}`);
-  console.log(`API: http://localhost:${PORT}/api`);
-});
+async function startServer() {
+  try {
+    // Initialize database
+    await initializeDatabase();
+
+    // Start server
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+      console.log(`Frontend: http://localhost:${PORT}`);
+      console.log(`API: http://localhost:${PORT}/api`);
+    });
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  }
+}
+
+startServer();
