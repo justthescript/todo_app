@@ -749,12 +749,34 @@ function renderSchoolWeeks() {
 function createWeekBlock(week, index) {
     const weekBlock = document.createElement('div');
     weekBlock.className = 'week-block';
+    weekBlock.dataset.weekIndex = index;
 
     // Check if this is the current week
     const today = formatDate(new Date());
     if (today >= week.startDate && today <= week.endDate) {
         weekBlock.classList.add('current-week');
     }
+
+    // Make week block a drop zone
+    weekBlock.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        weekBlock.classList.add('drag-over');
+    });
+
+    weekBlock.addEventListener('dragleave', () => {
+        weekBlock.classList.remove('drag-over');
+    });
+
+    weekBlock.addEventListener('drop', (e) => {
+        e.preventDefault();
+        weekBlock.classList.remove('drag-over');
+
+        const moduleData = e.dataTransfer.getData('application/json');
+        if (moduleData) {
+            const { classIndex, moduleIndex } = JSON.parse(moduleData);
+            assignModuleToWeekDirect(classIndex, moduleIndex, index);
+        }
+    });
 
     // Header
     const header = document.createElement('div');
@@ -771,6 +793,47 @@ function createWeekBlock(week, index) {
     header.appendChild(dateRange);
 
     weekBlock.appendChild(header);
+
+    // Get assigned modules for this week
+    const classes = getClasses();
+    const assignedModules = [];
+    classes.forEach((classItem, classIndex) => {
+        if (classItem.modules) {
+            classItem.modules.forEach((module, moduleIndex) => {
+                if (module.weekIndex === index) {
+                    assignedModules.push({
+                        ...module,
+                        className: classItem.name,
+                        classIndex,
+                        moduleIndex
+                    });
+                }
+            });
+        }
+    });
+
+    // Show assigned modules
+    if (assignedModules.length > 0) {
+        const modulesSection = document.createElement('div');
+        modulesSection.className = 'week-modules-section';
+
+        const modulesHeader = document.createElement('div');
+        modulesHeader.className = 'week-modules-header';
+        modulesHeader.textContent = 'Assigned Modules:';
+        modulesSection.appendChild(modulesHeader);
+
+        assignedModules.forEach(module => {
+            const moduleChip = document.createElement('div');
+            moduleChip.className = 'week-module-chip';
+            moduleChip.innerHTML = `
+                <span class="module-chip-name">${module.name}</span>
+                <span class="module-chip-class">(${module.className})</span>
+            `;
+            modulesSection.appendChild(moduleChip);
+        });
+
+        weekBlock.appendChild(modulesSection);
+    }
 
     // Get tasks for this week
     const weekTasks = getTasksForWeek(index);
@@ -793,6 +856,13 @@ function createWeekBlock(week, index) {
         stats.appendChild(urgentStat);
     }
 
+    if (assignedModules.length > 0) {
+        const modulesStat = document.createElement('div');
+        modulesStat.className = 'week-stat';
+        modulesStat.innerHTML = `<span class="week-stat-badge" style="background: var(--school-color); color: white;">${assignedModules.length}</span> Modules`;
+        stats.appendChild(modulesStat);
+    }
+
     const completedStat = document.createElement('div');
     completedStat.className = 'week-stat';
     completedStat.innerHTML = `<span class="week-stat-badge" style="background: var(--leisure-color); color: white;">${completedTasks.length}</span> Completed`;
@@ -800,8 +870,11 @@ function createWeekBlock(week, index) {
 
     weekBlock.appendChild(stats);
 
-    // Click to view week details in Tasks view
-    weekBlock.addEventListener('click', () => {
+    // Click to view week details in Tasks view (only if not clicking on modules)
+    weekBlock.addEventListener('click', (e) => {
+        // Don't navigate if clicking on modules section
+        if (e.target.closest('.week-modules-section')) return;
+
         // Set the tasksViewDate to the first date of the week
         tasksViewDate = week.startDate;
         currentView = 'tasks';
@@ -2327,12 +2400,31 @@ function createClassElement(classItem, index) {
 function createModuleElement(module, classIndex, moduleIndex) {
     const div = document.createElement('div');
     div.className = 'module-item';
+    div.draggable = true;
+
+    // Drag and drop handlers
+    div.addEventListener('dragstart', (e) => {
+        const data = JSON.stringify({ classIndex, moduleIndex });
+        e.dataTransfer.setData('application/json', data);
+        e.dataTransfer.effectAllowed = 'move';
+        div.classList.add('dragging');
+    });
+
+    div.addEventListener('dragend', () => {
+        div.classList.remove('dragging');
+    });
+
+    const dragHandle = document.createElement('span');
+    dragHandle.className = 'drag-handle';
+    dragHandle.innerHTML = '⋮⋮';
+    dragHandle.title = 'Drag to assign to a week';
+    div.appendChild(dragHandle);
 
     const info = document.createElement('div');
     info.className = 'module-info';
     info.innerHTML = `
         <span class="module-name">${module.name}</span>
-        ${module.weekNumber ? `<span class="module-week">Week ${module.weekNumber}</span>` : ''}
+        ${module.weekNumber ? `<span class="module-week">Week ${module.weekNumber} - ${module.semester}</span>` : '<span class="module-unassigned">Not assigned</span>'}
     `;
     div.appendChild(info);
 
@@ -2340,7 +2432,7 @@ function createModuleElement(module, classIndex, moduleIndex) {
     actions.className = 'module-actions';
 
     const assignBtn = document.createElement('button');
-    assignBtn.textContent = module.weekNumber ? 'Reassign Week' : 'Assign to Week';
+    assignBtn.textContent = module.weekNumber ? 'Reassign' : 'Assign';
     assignBtn.addEventListener('click', () => openWeekAssignModal(classIndex, moduleIndex));
     actions.appendChild(assignBtn);
 
@@ -2453,6 +2545,32 @@ function assignModuleToWeek() {
     renderClasses();
     if (currentView === 'backlog') {
         renderBacklog();
+    }
+    if (currentContext === 'school' && currentView === 'dashboard') {
+        renderSchoolWeeks();
+    }
+}
+
+/**
+ * Assign module to week directly (drag and drop)
+ */
+function assignModuleToWeekDirect(classIndex, moduleIndex, weekIndex) {
+    const week = ACADEMIC_WEEKS[weekIndex];
+    const classes = getClasses();
+
+    classes[classIndex].modules[moduleIndex].weekNumber = week.weekNumber;
+    classes[classIndex].modules[moduleIndex].weekIndex = weekIndex;
+    classes[classIndex].modules[moduleIndex].semester = week.semester;
+
+    saveClasses(classes);
+
+    // Refresh the views
+    renderClasses();
+    if (currentView === 'backlog') {
+        renderBacklog();
+    }
+    if (currentContext === 'school' && currentView === 'dashboard') {
+        renderSchoolWeeks();
     }
 }
 
