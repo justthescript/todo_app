@@ -343,7 +343,7 @@
                     localStorage.setItem('authToken', data.token);
                     localStorage.setItem('userId', data.userId);
                     localStorage.setItem('userEmail', data.email);
-                    window.location.href = '/';
+                    window.location.href = 'index.html';
                 } else {
                     showError(data.error || 'Login failed');
                 }
@@ -391,7 +391,7 @@
                     localStorage.setItem('authToken', data.token);
                     localStorage.setItem('userId', data.userId);
                     localStorage.setItem('userEmail', data.email);
-                    window.location.href = '/';
+                    window.location.href = 'index.html';
                 } else {
                     showError(data.error || 'Registration failed');
                 }
