@@ -4,7 +4,7 @@
 const CONFIG = {
   // Development: Running locally
   development: {
-    API_URL: 'http://localhost:3000/api'
+    API_URL: 'https://todo-app-backend-sa96.onrender.com'
   },
 
   // Production: Frontend on GitHub Pages, Backend on Render
