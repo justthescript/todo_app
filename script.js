@@ -2,37 +2,32 @@
  * ============================================
  * CONTEXT TASK MANAGER - Main JavaScript
  * ============================================
- * 
- * DATA STRUCTURE IN LOCALSTORAGE:
- * 
- * 1. tasks: Object with date keys (YYYY-MM-DD format)
- *    {
- *      "2024-12-15": {
- *        "work": [{ id, title, notes, status, completed, priority }],
- *        "rescue": [...],
- *        "personal": [...],
- *        "school": [...]
- *      }
- *    }
  *
- * 2. backlog: Object with context keys
- *    {
- *      "work": [{ id, title, notes, status }],
- *      "rescue": [...],
- *      "personal": [...],
- *      "school": [...]
- *    }
- * 
- * 3. recurringTasks: Array of recurring task definitions
- *    [{ id, title, context, status, frequency, active, generatedDates }]
- * 
- * 4. settings: Object for user preferences
- *    { theme: 'light' | 'dark' }
+ * Now uses backend API for data storage to support cross-device sync
  */
+
+// ============================================
+// AUTHENTICATION CHECK
+// ============================================
+
+// Check if user is authenticated on page load
+if (!requireAuth()) {
+    // User will be redirected to login page
+    throw new Error('Not authenticated');
+}
 
 // ============================================
 // GLOBAL STATE
 // ============================================
+
+// Cache for data loaded from API
+let cachedTasks = {};
+let cachedBacklog = { work: [], rescue: [], personal: [], school: [] };
+let cachedRecurringTasks = [];
+let cachedClasses = [];
+let cachedModules = [];
+let cachedCustomStatuses = [];
+let cachedCustomCategories = [];
 
 let currentContext = 'work'; // work | rescue | personal | school
 let currentView = 'dashboard'; // dashboard | tasks | backlog | recurring | mass-entry | classes | settings
@@ -73,145 +68,198 @@ const ACADEMIC_WEEKS = [
 ];
 
 // ============================================
-// DATA MANAGEMENT
+// DATA MANAGEMENT - Now using API
 // ============================================
 
 /**
- * Get all tasks from localStorage
+ * Load all data from API
  */
-function getTasks() {
-    const tasksJson = localStorage.getItem('tasks');
-    return tasksJson ? JSON.parse(tasksJson) : {};
+async function loadAllData() {
+    try {
+        const [tasks, backlog, recurring, classes, modules, statuses, categories, settings] = await Promise.all([
+            apiGetTasks(),
+            apiGetBacklog(),
+            apiGetRecurringTasks(),
+            apiGetClasses(),
+            apiGetModules(),
+            apiGetCustomStatuses(),
+            apiGetCustomCategories(),
+            apiGetSettings()
+        ]);
+
+        cachedTasks = tasks || {};
+        cachedBacklog = backlog || { work: [], rescue: [], personal: [], school: [] };
+        cachedRecurringTasks = recurring || [];
+        cachedClasses = classes || [];
+        cachedModules = modules || [];
+        cachedCustomStatuses = statuses?.length > 0 ? statuses : [
+            { id: 1, status: 'urgent', color: '#f56565' },
+            { id: 2, status: 'today', color: '#ecc94b' },
+            { id: 3, status: 'leisure', color: '#48bb78' },
+            { id: 4, status: 'improvements', color: '#9f7aea' }
+        ];
+        cachedCustomCategories = categories?.length > 0 ? categories : [
+            { id: 1, category: 'improvements' },
+            { id: 2, category: 'work-quality' },
+            { id: 3, category: 'work-reduction' },
+            { id: 4, category: 'revenue-increase' }
+        ];
+
+        // Apply theme
+        if (settings) {
+            document.body.setAttribute('data-theme', settings.theme || 'light');
+            document.querySelector('.theme-icon').textContent = (settings.theme === 'dark') ? '☀️' : '🌙';
+        }
+    } catch (error) {
+        console.error('Failed to load data:', error);
+        alert('Failed to load data. Please refresh the page.');
+    }
 }
 
 /**
- * Save tasks to localStorage
+ * Get all tasks
+ */
+function getTasks() {
+    return cachedTasks;
+}
+
+/**
+ * Save tasks (no-op, handled by API calls)
  */
 function saveTasks(tasks) {
-    localStorage.setItem('tasks', JSON.stringify(tasks));
+    cachedTasks = tasks;
 }
 
 /**
  * Get tasks for a specific date and context
  */
 function getTasksForDate(dateStr, context) {
-    const tasks = getTasks();
-    if (!tasks[dateStr] || !tasks[dateStr][context]) {
+    if (!cachedTasks[dateStr] || !cachedTasks[dateStr][context]) {
         return [];
     }
-    return tasks[dateStr][context];
+    return cachedTasks[dateStr][context];
 }
 
 /**
  * Save tasks for a specific date and context
  */
-function saveTasksForDate(dateStr, context, taskList) {
-    const tasks = getTasks();
-    if (!tasks[dateStr]) {
-        tasks[dateStr] = {};
+async function saveTasksForDate(dateStr, context, taskList) {
+    if (!cachedTasks[dateStr]) {
+        cachedTasks[dateStr] = {};
     }
-    tasks[dateStr][context] = taskList;
-    saveTasks(tasks);
+    cachedTasks[dateStr][context] = taskList;
 }
 
 /**
  * Get backlog tasks
  */
 function getBacklog() {
-    const backlogJson = localStorage.getItem('backlog');
-    return backlogJson ? JSON.parse(backlogJson) : { work: [], rescue: [], personal: [], school: [] };
+    return cachedBacklog;
 }
 
 /**
- * Save backlog tasks
+ * Save backlog tasks (no-op, handled by API calls)
  */
 function saveBacklog(backlog) {
-    localStorage.setItem('backlog', JSON.stringify(backlog));
+    cachedBacklog = backlog;
 }
 
 /**
  * Get recurring tasks
  */
 function getRecurringTasks() {
-    const recurringJson = localStorage.getItem('recurringTasks');
-    return recurringJson ? JSON.parse(recurringJson) : [];
+    return cachedRecurringTasks;
 }
 
 /**
- * Save recurring tasks
+ * Save recurring tasks (no-op, handled by API calls)
  */
 function saveRecurringTasks(recurring) {
-    localStorage.setItem('recurringTasks', JSON.stringify(recurring));
+    cachedRecurringTasks = recurring;
 }
 
 /**
  * Get settings
  */
 function getSettings() {
-    const settingsJson = localStorage.getItem('settings');
-    return settingsJson ? JSON.parse(settingsJson) : { theme: 'light' };
+    return { theme: document.body.getAttribute('data-theme') || 'light' };
 }
 
 /**
  * Save settings
  */
-function saveSettings(settings) {
-    localStorage.setItem('settings', JSON.stringify(settings));
+async function saveSettings(settings) {
+    try {
+        await apiUpdateSettings(settings);
+        document.body.setAttribute('data-theme', settings.theme);
+        document.querySelector('.theme-icon').textContent = settings.theme === 'dark' ? '☀️' : '🌙';
+    } catch (error) {
+        console.error('Failed to save settings:', error);
+    }
 }
 
 /**
  * Get custom statuses
  */
 function getCustomStatuses() {
-    const statusesJson = localStorage.getItem('customStatuses');
-    return statusesJson ? JSON.parse(statusesJson) : [
-        { id: 'urgent', name: 'urgent', color: '#f56565' },
-        { id: 'today', name: 'today', color: '#ecc94b' },
-        { id: 'leisure', name: 'leisure', color: '#48bb78' },
-        { id: 'improvements', name: 'improvements', color: '#9f7aea' }
-    ];
+    return cachedCustomStatuses.map(s => ({
+        id: s.status || s.id,
+        name: s.status || s.name,
+        color: s.color
+    }));
 }
 
 /**
- * Save custom statuses
+ * Save custom statuses (no-op, handled by API calls)
  */
 function saveCustomStatuses(statuses) {
-    localStorage.setItem('customStatuses', JSON.stringify(statuses));
+    // Handled by individual API calls
 }
 
 /**
  * Get custom categories (for backlog)
  */
 function getCustomCategories() {
-    const categoriesJson = localStorage.getItem('customCategories');
-    return categoriesJson ? JSON.parse(categoriesJson) : [
-        { id: 'improvements', name: 'improvements' },
-        { id: 'work-quality', name: 'work-quality' },
-        { id: 'work-reduction', name: 'work-reduction' },
-        { id: 'revenue-increase', name: 'revenue-increase' }
-    ];
+    return cachedCustomCategories.map(c => ({
+        id: c.category || c.id,
+        name: c.category || c.name
+    }));
 }
 
 /**
- * Save custom categories
+ * Save custom categories (no-op, handled by API calls)
  */
 function saveCustomCategories(categories) {
-    localStorage.setItem('customCategories', JSON.stringify(categories));
+    // Handled by individual API calls
 }
 
 /**
  * Get classes (for school context)
  */
 function getClasses() {
-    const classesJson = localStorage.getItem('classes');
-    return classesJson ? JSON.parse(classesJson) : [];
+    // Reconstruct classes with modules
+    return cachedClasses.map(classItem => {
+        const classModules = cachedModules.filter(m => m.class_id === classItem.id);
+        return {
+            id: classItem.id,
+            name: classItem.name,
+            color: classItem.color,
+            modules: classModules.map(m => ({
+                id: m.id,
+                name: m.name,
+                weekNumber: m.week_number,
+                status: m.status,
+                completed: m.completed
+            }))
+        };
+    });
 }
 
 /**
- * Save classes
+ * Save classes (no-op, handled by API calls)
  */
 function saveClasses(classes) {
-    localStorage.setItem('classes', JSON.stringify(classes));
+    // Handled by individual API calls
 }
 
 /**
@@ -363,20 +411,16 @@ function formatWeekDateRange(startDate, endDate) {
 // INITIALIZATION
 // ============================================
 
-document.addEventListener('DOMContentLoaded', () => {
-    initializeApp();
+document.addEventListener('DOMContentLoaded', async () => {
+    await initializeApp();
 });
 
-function initializeApp() {
-    // Load theme
-    const settings = getSettings();
-    if (settings.theme === 'dark') {
-        document.body.setAttribute('data-theme', 'dark');
-        document.querySelector('.theme-icon').textContent = '☀️';
-    }
+async function initializeApp() {
+    // Load all data from API
+    await loadAllData();
 
     // Generate recurring tasks for current month
-    generateRecurringTasks();
+    await generateRecurringTasks();
 
     // Set initial selected date to today
     selectedDate = formatDate(currentDate);
@@ -508,9 +552,17 @@ function setupEventListeners() {
     // Settings page
     document.getElementById('addStatusBtn').addEventListener('click', addCustomStatus);
     document.getElementById('addCategoryBtn').addEventListener('click', addCustomCategory);
+    document.getElementById('clearAllTasksBtn').addEventListener('click', clearAllTasks);
 
     // Classes page
     document.getElementById('addClassBtn').addEventListener('click', addClass);
+
+    // Logout button
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+        if (confirm('Are you sure you want to logout?')) {
+            logout();
+        }
+    });
 }
 
 // ============================================
@@ -1032,7 +1084,7 @@ function createTaskElement(task, index, dateStr) {
     return taskElement;
 }
 
-function addTask() {
+async function addTask() {
     const titleInput = document.getElementById('newTaskTitle');
     const notesInput = document.getElementById('newTaskNotes');
     const statusSelect = document.getElementById('newTaskStatus');
@@ -1042,6 +1094,8 @@ function addTask() {
 
     const task = {
         id: generateId(),
+        date: selectedDate,
+        context: currentContext,
         title: title,
         notes: notesInput.value.trim(),
         status: statusSelect.value,
@@ -1053,7 +1107,16 @@ function addTask() {
     const tasks = getTasksForDate(selectedDate, currentContext);
     tasks.push(task);
     sortTasks(tasks);
-    saveTasksForDate(selectedDate, currentContext, tasks);
+    await saveTasksForDate(selectedDate, currentContext, tasks);
+
+    // Save to API
+    try {
+        await apiCreateTask(task);
+    } catch (error) {
+        console.error('Failed to create task:', error);
+        alert('Failed to create task. Please try again.');
+        return;
+    }
 
     // Clear inputs
     titleInput.value = '';
@@ -1894,51 +1957,83 @@ function toggleRecurringTask(index) {
     renderRecurringTasks();
 }
 
-function deleteRecurringTask(index) {
-    if (!confirm('Delete this recurring task?')) return;
-    
+async function deleteRecurringTask(index) {
     const recurring = getRecurringTasks();
     const allTasks = recurring.filter(t => t.context === currentContext);
     const task = allTasks[index];
-    
+
+    // Ask user if they want to delete all instances
+    const deleteAll = confirm('Do you want to remove all instances of this recurring task from your calendar?\n\nClick OK to delete the series and all generated tasks.\nClick Cancel to only delete the recurring task definition (generated tasks will remain).');
+
     // Find global index
     const globalIndex = recurring.findIndex(t => t.id === task.id);
-    
-    recurring.splice(globalIndex, 1);
-    saveRecurringTasks(recurring);
-    
-    renderRecurringTasks();
+
+    // Delete via API
+    try {
+        await apiDeleteRecurringTask(task.id, deleteAll);
+
+        // Update local cache
+        recurring.splice(globalIndex, 1);
+        saveRecurringTasks(recurring);
+
+        // If deleting all instances, remove from local cache too
+        if (deleteAll) {
+            const tasks = getTasks();
+            Object.keys(tasks).forEach(dateStr => {
+                Object.keys(tasks[dateStr]).forEach(context => {
+                    tasks[dateStr][context] = tasks[dateStr][context].filter(t => t.title !== task.title);
+                });
+            });
+            saveTasks(tasks);
+        }
+
+        renderRecurringTasks();
+        refreshCurrentView();
+    } catch (error) {
+        console.error('Failed to delete recurring task:', error);
+        alert('Failed to delete recurring task. Please try again.');
+    }
 }
 
 /**
- * Generate recurring tasks for the current and next 2 months
+ * Generate recurring tasks for the current and next 2 months (excluding past dates)
  */
-function generateRecurringTasks() {
+async function generateRecurringTasks() {
     const recurring = getRecurringTasks();
     const today = new Date();
-    
+    today.setHours(0, 0, 0, 0); // Reset to start of day
+
     // Generate for current month and next 2 months
     for (let monthOffset = 0; monthOffset < 3; monthOffset++) {
         const targetMonth = new Date(today.getFullYear(), today.getMonth() + monthOffset, 1);
-        
-        recurring.forEach(recurringTask => {
-            if (!recurringTask.active) return;
-            
+
+        for (const recurringTask of recurring) {
+            if (!recurringTask.active) continue;
+
             const dates = getDatesForRecurringTask(recurringTask, targetMonth);
-            
-            dates.forEach(dateStr => {
+
+            for (const dateStr of dates) {
+                // Check if date is in the past
+                const taskDate = parseDate(dateStr);
+                if (taskDate < today) {
+                    // Skip past dates
+                    continue;
+                }
+
                 // Check if already generated
-                if (recurringTask.generatedDates.includes(dateStr)) return;
-                
+                if (recurringTask.generatedDates && recurringTask.generatedDates.includes(dateStr)) continue;
+
                 // Add task to date
                 const tasks = getTasksForDate(dateStr, recurringTask.context);
-                
+
                 // Check if task already exists (by title)
                 const exists = tasks.some(t => t.title === recurringTask.title);
-                if (exists) return;
-                
+                if (exists) continue;
+
                 const task = {
                     id: generateId(),
+                    date: dateStr,
+                    context: recurringTask.context,
                     title: recurringTask.title,
                     notes: '',
                     status: recurringTask.status,
@@ -1949,14 +2044,33 @@ function generateRecurringTasks() {
 
                 tasks.push(task);
                 sortTasks(tasks);
-                saveTasksForDate(dateStr, recurringTask.context, tasks);
-                
+                await saveTasksForDate(dateStr, recurringTask.context, tasks);
+
+                // Create task via API
+                try {
+                    await apiCreateTask(task);
+                } catch (error) {
+                    console.error('Failed to create recurring task:', error);
+                }
+
                 // Mark as generated
+                if (!recurringTask.generatedDates) {
+                    recurringTask.generatedDates = [];
+                }
                 recurringTask.generatedDates.push(dateStr);
-            });
-        });
+            }
+        }
     }
-    
+
+    // Update all recurring tasks via API
+    for (const task of recurring) {
+        try {
+            await apiUpdateRecurringTask(task.id, task);
+        } catch (error) {
+            console.error('Failed to update recurring task:', error);
+        }
+    }
+
     saveRecurringTasks(recurring);
 }
 
@@ -2148,6 +2262,43 @@ function saveMassEntry() {
 function renderSettings() {
     renderStatusesList();
     renderCategoriesList();
+}
+
+/**
+ * Clear all tasks from calendar but keep recurring tasks (deactivated)
+ */
+async function clearAllTasks() {
+    const confirmation = confirm('WARNING: This will remove ALL tasks from your calendar!\n\nRecurring tasks will be kept but deactivated.\n\nThis action cannot be undone. Continue?');
+
+    if (!confirmation) return;
+
+    // Double confirmation for safety
+    const doubleConfirm = confirm('Are you absolutely sure? This will delete all your tasks!');
+
+    if (!doubleConfirm) return;
+
+    try {
+        // Clear via API
+        await apiClearAllTasks();
+
+        // Clear local cache
+        cachedTasks = {};
+        saveTasks({});
+
+        // Deactivate all recurring tasks in cache
+        cachedRecurringTasks.forEach(task => {
+            task.active = false;
+        });
+        saveRecurringTasks(cachedRecurringTasks);
+
+        // Refresh views
+        refreshCurrentView();
+
+        alert('All tasks have been cleared and recurring tasks have been deactivated.');
+    } catch (error) {
+        console.error('Failed to clear all tasks:', error);
+        alert('Failed to clear all tasks. Please try again.');
+    }
 }
 
 function renderStatusesList() {
@@ -2431,10 +2582,27 @@ function createModuleElement(module, classIndex, moduleIndex) {
     const actions = document.createElement('div');
     actions.className = 'module-actions';
 
-    const assignBtn = document.createElement('button');
-    assignBtn.textContent = module.weekNumber ? 'Reassign' : 'Assign';
-    assignBtn.addEventListener('click', () => openWeekAssignModal(classIndex, moduleIndex));
-    actions.appendChild(assignBtn);
+    // If module is assigned to a week, show defer and complete options
+    if (module.weekNumber) {
+        // Mark as completed button
+        const completeBtn = document.createElement('button');
+        completeBtn.textContent = module.completed ? '✓ Completed' : 'Mark Complete';
+        completeBtn.className = module.completed ? 'module-status-completed' : '';
+        completeBtn.addEventListener('click', () => toggleModuleComplete(classIndex, moduleIndex));
+        actions.appendChild(completeBtn);
+
+        // Defer button
+        const deferBtn = document.createElement('button');
+        deferBtn.textContent = 'Defer';
+        deferBtn.addEventListener('click', () => openWeekAssignModal(classIndex, moduleIndex));
+        actions.appendChild(deferBtn);
+    } else {
+        // Assign button for unassigned modules
+        const assignBtn = document.createElement('button');
+        assignBtn.textContent = 'Assign';
+        assignBtn.addEventListener('click', () => openWeekAssignModal(classIndex, moduleIndex));
+        actions.appendChild(assignBtn);
+    }
 
     const deleteBtn = document.createElement('button');
     deleteBtn.textContent = 'Delete';
@@ -2442,6 +2610,11 @@ function createModuleElement(module, classIndex, moduleIndex) {
     actions.appendChild(deleteBtn);
 
     div.appendChild(actions);
+
+    // Apply completed style if module is completed
+    if (module.completed) {
+        div.style.opacity = '0.7';
+    }
 
     return div;
 }
@@ -2499,11 +2672,53 @@ function deleteModule(classIndex, moduleIndex) {
     if (!confirm('Delete this module?')) return;
 
     const classes = getClasses();
+    const module = classes[classIndex].modules[moduleIndex];
+
+    // Delete via API
+    if (module.id) {
+        apiDeleteModule(module.id).catch(error => {
+            console.error('Failed to delete module:', error);
+        });
+    }
+
     classes[classIndex].modules.splice(moduleIndex, 1);
     saveClasses(classes);
     renderClasses();
     if (currentView === 'backlog') {
         renderBacklog();
+    }
+}
+
+async function toggleModuleComplete(classIndex, moduleIndex) {
+    const classes = getClasses();
+    const module = classes[classIndex].modules[moduleIndex];
+
+    // Toggle completed status
+    module.completed = !module.completed;
+    module.status = module.completed ? 'completed' : 'pending';
+
+    // Update via API
+    if (module.id) {
+        try {
+            await apiUpdateModule(module.id, {
+                class_id: classes[classIndex].id,
+                module_number: moduleIndex + 1,
+                name: module.name,
+                week_number: module.weekNumber,
+                status: module.status,
+                completed: module.completed
+            });
+        } catch (error) {
+            console.error('Failed to update module:', error);
+            alert('Failed to update module. Please try again.');
+            return;
+        }
+    }
+
+    saveClasses(classes);
+    renderClasses();
+    if (currentContext === 'school' && currentView === 'dashboard') {
+        renderSchoolWeeks();
     }
 }
 
