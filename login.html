@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Todo App</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 400px;
+            padding: 40px;
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo h1 {
+            font-size: 32px;
+            color: #667eea;
+            margin-bottom: 8px;
+        }
+
+        .logo p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .tabs {
+            display: flex;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            cursor: pointer;
+            color: #666;
+            font-weight: 500;
+            transition: all 0.3s;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+        }
+
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .form-section {
+            display: none;
+        }
+
+        .form-section.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .error-message {
+            background: #fee;
+            color: #c33;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .success-message {
+            background: #efe;
+            color: #3c3;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .success-message.show {
+            display: block;
+        }
+
+        .forgot-password {
+            text-align: center;
+            margin-top: 15px;
+        }
+
+        .forgot-password a {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .forgot-password a:hover {
+            text-decoration: underline;
+        }
+
+        .back-link {
+            text-align: center;
+            margin-top: 15px;
+        }
+
+        .back-link a {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .back-link a:hover {
+            text-decoration: underline;
+        }
+
+        .password-requirements {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 10px;
+            color: #667eea;
+        }
+
+        .loading.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <h1>✓ Todo App</h1>
+            <p>Organize your tasks, achieve your goals</p>
+        </div>
+
+        <div id="error-message" class="error-message"></div>
+        <div id="success-message" class="success-message"></div>
+
+        <!-- Login/Signup Tabs -->
+        <div id="auth-tabs" class="tabs">
+            <div class="tab active" data-tab="login">Login</div>
+            <div class="tab" data-tab="signup">Sign Up</div>
+        </div>
+
+        <!-- Login Form -->
+        <div id="login-form" class="form-section active">
+            <form id="login">
+                <div class="form-group">
+                    <label for="login-email">Email</label>
+                    <input type="email" id="login-email" required autocomplete="email">
+                </div>
+                <div class="form-group">
+                    <label for="login-password">Password</label>
+                    <input type="password" id="login-password" required autocomplete="current-password">
+                </div>
+                <button type="submit" class="btn" id="login-btn">Login</button>
+            </form>
+            <div class="forgot-password">
+                <a href="#" id="show-forgot-password">Forgot password?</a>
+            </div>
+        </div>
+
+        <!-- Signup Form -->
+        <div id="signup-form" class="form-section">
+            <form id="signup">
+                <div class="form-group">
+                    <label for="signup-email">Email</label>
+                    <input type="email" id="signup-email" required autocomplete="email">
+                </div>
+                <div class="form-group">
+                    <label for="signup-password">Password</label>
+                    <input type="password" id="signup-password" required autocomplete="new-password">
+                    <div class="password-requirements">Minimum 6 characters</div>
+                </div>
+                <div class="form-group">
+                    <label for="signup-password-confirm">Confirm Password</label>
+                    <input type="password" id="signup-password-confirm" required autocomplete="new-password">
+                </div>
+                <button type="submit" class="btn" id="signup-btn">Create Account</button>
+            </form>
+        </div>
+
+        <!-- Forgot Password Form -->
+        <div id="forgot-password-form" class="form-section">
+            <form id="forgot-password">
+                <div class="form-group">
+                    <label for="forgot-email">Email</label>
+                    <input type="email" id="forgot-email" required autocomplete="email">
+                </div>
+                <button type="submit" class="btn" id="forgot-btn">Send Reset Link</button>
+            </form>
+            <div class="back-link">
+                <a href="#" id="back-to-login">← Back to Login</a>
+            </div>
+        </div>
+
+        <div id="loading" class="loading">Processing...</div>
+    </div>
+
+    <script>
+        const API_URL = window.location.origin + '/api';
+
+        // Tab switching
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const tabName = tab.dataset.tab;
+
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.form-section').forEach(f => f.classList.remove('active'));
+
+                tab.classList.add('active');
+                document.getElementById(`${tabName}-form`).classList.add('active');
+
+                hideMessages();
+            });
+        });
+
+        // Show forgot password form
+        document.getElementById('show-forgot-password').addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('auth-tabs').style.display = 'none';
+            document.querySelectorAll('.form-section').forEach(f => f.classList.remove('active'));
+            document.getElementById('forgot-password-form').classList.add('active');
+            hideMessages();
+        });
+
+        // Back to login
+        document.getElementById('back-to-login').addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('auth-tabs').style.display = 'flex';
+            document.querySelectorAll('.form-section').forEach(f => f.classList.remove('active'));
+            document.getElementById('login-form').classList.add('active');
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelector('[data-tab="login"]').classList.add('active');
+            hideMessages();
+        });
+
+        // Login
+        document.getElementById('login').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            hideMessages();
+
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+
+            const btn = document.getElementById('login-btn');
+            btn.disabled = true;
+            showLoading();
+
+            try {
+                const response = await fetch(`${API_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    localStorage.setItem('authToken', data.token);
+                    localStorage.setItem('userId', data.userId);
+                    localStorage.setItem('userEmail', data.email);
+                    window.location.href = '/';
+                } else {
+                    showError(data.error || 'Login failed');
+                }
+            } catch (error) {
+                showError('Network error. Please try again.');
+            } finally {
+                btn.disabled = false;
+                hideLoading();
+            }
+        });
+
+        // Signup
+        document.getElementById('signup').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            hideMessages();
+
+            const email = document.getElementById('signup-email').value;
+            const password = document.getElementById('signup-password').value;
+            const passwordConfirm = document.getElementById('signup-password-confirm').value;
+
+            if (password !== passwordConfirm) {
+                showError('Passwords do not match');
+                return;
+            }
+
+            if (password.length < 6) {
+                showError('Password must be at least 6 characters');
+                return;
+            }
+
+            const btn = document.getElementById('signup-btn');
+            btn.disabled = true;
+            showLoading();
+
+            try {
+                const response = await fetch(`${API_URL}/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    localStorage.setItem('authToken', data.token);
+                    localStorage.setItem('userId', data.userId);
+                    localStorage.setItem('userEmail', data.email);
+                    window.location.href = '/';
+                } else {
+                    showError(data.error || 'Registration failed');
+                }
+            } catch (error) {
+                showError('Network error. Please try again.');
+            } finally {
+                btn.disabled = false;
+                hideLoading();
+            }
+        });
+
+        // Forgot password
+        document.getElementById('forgot-password').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            hideMessages();
+
+            const email = document.getElementById('forgot-email').value;
+
+            const btn = document.getElementById('forgot-btn');
+            btn.disabled = true;
+            showLoading();
+
+            try {
+                const response = await fetch(`${API_URL}/auth/forgot-password`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showSuccess('If the email exists, a reset link has been sent. Please check your inbox.');
+                    document.getElementById('forgot-email').value = '';
+                } else {
+                    showError(data.error || 'Failed to send reset email');
+                }
+            } catch (error) {
+                showError('Network error. Please try again.');
+            } finally {
+                btn.disabled = false;
+                hideLoading();
+            }
+        });
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error-message');
+            errorDiv.textContent = message;
+            errorDiv.classList.add('show');
+        }
+
+        function showSuccess(message) {
+            const successDiv = document.getElementById('success-message');
+            successDiv.textContent = message;
+            successDiv.classList.add('show');
+        }
+
+        function hideMessages() {
+            document.getElementById('error-message').classList.remove('show');
+            document.getElementById('success-message').classList.remove('show');
+        }
+
+        function showLoading() {
+            document.getElementById('loading').classList.add('show');
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').classList.remove('show');
+        }
+
+        // Check if already logged in
+        if (localStorage.getItem('authToken')) {
+            window.location.href = '/';
+        }
+    </script>
+</body>
+</html>
